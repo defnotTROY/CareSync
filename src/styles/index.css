@@ -1,0 +1,28 @@
+@layer base {
+    :root {
+        /* Pure Black & White System */
+        --color-foreground: #000000;
+        /* Pure Black for text */
+        --color-background: #ffffff;
+        /* Pure White for backgrounds */
+        --color-muted: #6b7280;
+        /* Medium Gray for descriptions */
+        --color-muted-border: #e5e7eb;
+        /* Light Gray for borders */
+    }
+}
+
+@import "tailwindcss";
+
+/* THIS IS THE MAGIC: Forces all images to be 
+  grayscale to truly make it Full B&W 
+*/
+img {
+    filter: grayscale(100%);
+    transition: filter 0.3s ease;
+}
+
+/* Optional: Make images colorful when you hover over them */
+img:hover {
+    filter: grayscale(0%);
+}
