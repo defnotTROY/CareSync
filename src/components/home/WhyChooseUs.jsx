@@ -20,7 +20,8 @@ export default function WhyChooseUs() {
     ];
 
     return (
-        <section className="px-6 py-20 lg:px-20 bg-white">
+        /* Added id="about" for the link and scroll-mt-20 for spacing */
+        <section id="about" className="px-6 py-20 lg:px-20 bg-white scroll-mt-20">
             <div className="flex flex-col lg:flex-row gap-16 items-center">
 
                 {/* Left Side: Text and Features */}

@@ -1,10 +1,18 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Navbar from "./components/Navbar.jsx";
-import Hero from "./components/Hero.jsx";
-import Specializations from "./components/Specializations.jsx";
-import WhyChooseUs from "./components/WhyChooseUs.jsx";
-import Footer from "./components/Footer.jsx";
-import Login from "./pages/Login.jsx"; // Import the Login page
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
+
+// Layout components
+import Navbar from "./components/layout/Navbar.jsx";
+import Footer from "./components/layout/Footer.jsx";
+
+// Home components
+import Hero from "./components/home/Hero.jsx";
+import Specializations from "./components/home/Specializations.jsx";
+import WhyChooseUs from "./components/home/WhyChooseUs.jsx";
+
+// Pages
+import Login from "./pages/Login.jsx";
+import SignUp from "./pages/SignUp.jsx";
 
 function LandingPage() {
   return (
@@ -20,14 +28,27 @@ function LandingPage() {
   );
 }
 
+// 1. Create a wrapper component to handle the location-based animation
+function AnimatedRoutes() {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      {/* We add 'location' and a unique 'key' so Framer Motion tracks the swap */}
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />
+      </Routes>
+    </AnimatePresence>
+  );
+}
+
 function App() {
   return (
     <Router>
       <div className="w-full min-h-screen bg-white text-slate-900">
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<Login />} />
-        </Routes>
+        <AnimatedRoutes />
       </div>
     </Router>
   );

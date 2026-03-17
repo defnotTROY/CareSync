@@ -23,7 +23,7 @@ const specialties = [
 export default function Specializations() {
     return (
         // Changed BG from bg-slate-50 to plain bg-white or border
-        <section className="px-6 py-16 lg:px-20 bg-white border-y border-slate-100">
+        <section id="specializations" className="px-6 py-16 lg:px-20 bg-white border-y border-slate-100">
             <div className="text-center mb-12">
                 <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Our Specializations</h2>
                 <p className="text-slate-500 mt-2 max-w-lg mx-auto leading-relaxed">Professional medical services tailored for your needs.</p>

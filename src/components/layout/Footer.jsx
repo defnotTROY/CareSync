@@ -2,7 +2,7 @@ import { ShieldCheck } from 'lucide-react';
 
 export default function Footer() {
     return (
-        <footer className="px-6 py-12 lg:px-20 bg-white">
+        <footer id="footer" className="px-6 py-12 lg:px-20 bg-white">
             {/* 1. Black CTA Box */}
             <div className="w-full bg-black rounded-[2.5rem] p-10 lg:p-20 text-center relative overflow-hidden mb-20">
                 {/* Subtle Background Pattern/Icon */}
