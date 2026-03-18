@@ -65,10 +65,14 @@ export default function Login() {
                     <ShieldCheck className="auth-brand-watermark -right-20 -bottom-20" />
 
                     <Link to="/" className="auth-brand-logo">
-                        <div className="auth-brand-logo-icon">
-                            <span className="text-black font-bold">M</span>
+                        <div className="auth-brand-logo-icon overflow-hidden">
+                            <img
+                                src="/mjylogo.png"
+                                alt="CareSync Logo"
+                                className="w-5 h-5 object-contain"
+                            />
                         </div>
-                        <span className="auth-brand-logo-text">CareSync</span>
+                        <span className="auth-brand-logo-text uppercase">CareSync</span>
                     </Link>
 
                     <div className="auth-brand-content">

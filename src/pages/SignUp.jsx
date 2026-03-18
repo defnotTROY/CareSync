@@ -126,11 +126,18 @@ export default function SignUp() {
                 {/* RIGHT SIDE: Branding */}
                 <div className="auth-brand-panel">
                     <ShieldCheck className="auth-brand-watermark -left-20 -top-20 -rotate-12" />
-                    <Link to="/" className="auth-brand-logo">
-                        <div className="auth-brand-logo-icon">
-                            <span className="text-black font-bold">M</span>
+                    <Link to="/" className="auth-brand-logo hover:opacity-90 transition-opacity">
+                        {/* This container keeps the white/black box shape from your CSS */}
+                        <div className="auth-brand-logo-icon overflow-hidden flex items-center justify-center">
+                            <img
+                                src="/mjylogo.png"
+                                alt="MJY 88 Logo"
+                                className="w-5 h-5 object-contain"
+                            />
                         </div>
-                        <span className="auth-brand-logo-text">MJY 88</span>
+
+                        {/* Your brand name text */}
+                        <span className="auth-brand-logo-text">CareSync</span>
                     </Link>
                     <div className="auth-brand-content">
                         <h1 className="auth-brand-heading">Start your <br /> license journey <br /> with MJY 88.</h1>
