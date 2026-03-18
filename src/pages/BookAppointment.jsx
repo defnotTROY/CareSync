@@ -104,7 +104,7 @@ export default function BookAppointment() {
                         {currentStep < 4 && (
                             <>
                                 <header className="book-header">
-                                    <h1 className="page-title">Book Appointment</h1>
+                                    <h1 className="page-title">Book an Appointment</h1>
                                     <p className="book-step-text">Step {currentStep} of 4</p>
                                 </header>
 
