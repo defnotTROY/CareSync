@@ -25,7 +25,13 @@ import StaffAppointments from "./pages/staff/StaffAppointments.jsx";
 import PaymentRecords from "./pages/staff/PaymentRecords.jsx";
 import StaffSettings from "./pages/staff/StaffSettings.jsx";
 import ClientRecords from "./pages/staff/ClientRecords.jsx";
-import NewClient from "./pages/staff/NewClient.jsx"; // Added New Client Import
+import NewClient from "./pages/staff/NewClient.jsx";
+
+// Doctor Pages
+import DoctorDashboard from "./pages/doctor/DoctorDashboard.jsx";
+import DoctorQueue from "./pages/doctor/DoctorQueue.jsx"; // Added Doctor Queue Import
+import Consultation from "./pages/doctor/Consultation.jsx";
+import DoctorRecords from "./pages/doctor/DoctorRecords.jsx";
 
 function LandingPage() {
   return (
@@ -65,7 +71,13 @@ function AnimatedRoutes() {
         <Route path="/staff/payments" element={<PaymentRecords />} />
         <Route path="/staff/settings" element={<StaffSettings />} />
         <Route path="/staff/records" element={<ClientRecords />} />
-        <Route path="/staff/new-client" element={<NewClient />} /> {/* Added New Client Route */}
+        <Route path="/staff/new-client" element={<NewClient />} />
+
+        {/* Doctor Terminal Routes */}
+        <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+        <Route path="/doctor/queue" element={<DoctorQueue />} /> {/* Added Doctor Queue Route */}
+        <Route path="/doctor/consultation" element={<Consultation />} />
+        <Route path="/doctor/records" element={<DoctorRecords />} />
       </Routes>
     </AnimatePresence>
   );
