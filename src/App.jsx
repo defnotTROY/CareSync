@@ -15,7 +15,17 @@ import Login from "./pages/Login.jsx";
 import SignUp from "./pages/SignUp.jsx";
 import ClientDashboard from "./pages/ClientDashboard.jsx";
 import BookAppointment from "./pages/BookAppointment.jsx";
-import MyAppointments from "./pages/MyAppointments.jsx"; // 1. Added MyAppointments import
+import MyAppointments from "./pages/MyAppointments.jsx";
+
+// Staff Pages
+import StaffDashboard from "./pages/staff/StaffDashboard.jsx";
+import ClientCheckIn from "./pages/staff/ClientCheckIn.jsx";
+import ClientQueue from "./pages/staff/ClientQueue.jsx";
+import StaffAppointments from "./pages/staff/StaffAppointments.jsx";
+import PaymentRecords from "./pages/staff/PaymentRecords.jsx";
+import StaffSettings from "./pages/staff/StaffSettings.jsx";
+import ClientRecords from "./pages/staff/ClientRecords.jsx";
+import NewClient from "./pages/staff/NewClient.jsx"; // Added New Client Import
 
 function LandingPage() {
   return (
@@ -31,13 +41,11 @@ function LandingPage() {
   );
 }
 
-// Wrapper component to handle location-based animations
 function AnimatedRoutes() {
   const location = useLocation();
 
   return (
     <AnimatePresence mode="wait">
-      {/* key={location.pathname} ensures the transition triggers on every route change */}
       <Routes location={location} key={location.pathname}>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
@@ -47,7 +55,17 @@ function AnimatedRoutes() {
         {/* Patient Dashboard Routes */}
         <Route path="/dashboard" element={<ClientDashboard />} />
         <Route path="/book" element={<BookAppointment />} />
-        <Route path="/appointments" element={<MyAppointments />} /> {/* 2. Added Appointments Route */}
+        <Route path="/appointments" element={<MyAppointments />} />
+
+        {/* Staff / Reception Terminal Routes */}
+        <Route path="/staff/dashboard" element={<StaffDashboard />} />
+        <Route path="/staff/check-in" element={<ClientCheckIn />} />
+        <Route path="/staff/queue" element={<ClientQueue />} />
+        <Route path="/staff/appointments" element={<StaffAppointments />} />
+        <Route path="/staff/payments" element={<PaymentRecords />} />
+        <Route path="/staff/settings" element={<StaffSettings />} />
+        <Route path="/staff/records" element={<ClientRecords />} />
+        <Route path="/staff/new-client" element={<NewClient />} /> {/* Added New Client Route */}
       </Routes>
     </AnimatePresence>
   );
