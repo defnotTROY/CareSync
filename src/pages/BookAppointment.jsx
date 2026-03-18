@@ -16,9 +16,9 @@ export default function BookAppointment() {
     const [paymentMethod, setPaymentMethod] = useState('');
     const [showQR, setShowQR] = useState(false); // Controls the QR Modal
 
-    const [monthIndex, setMonthIndex] = useState(2);
-    const currentYear = 2026;
-    const today = new Date(2026, 2, 18);
+    const today = new Date();
+    const [currentYear, setCurrentYear] = useState(today.getFullYear());
+    const [monthIndex, setMonthIndex] = useState(today.getMonth());
 
     const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const daysInMonth = new Date(currentYear, monthIndex + 1, 0).getDate();

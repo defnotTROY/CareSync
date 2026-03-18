@@ -1,6 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 
+// Providers & Protections
+import { AuthProvider } from './lib/AuthContext.jsx';
+import ProtectedRoute from './components/layout/ProtectedRoute.jsx';
+
 // Layout components
 import Navbar from "./components/layout/Navbar.jsx";
 import Footer from "./components/layout/Footer.jsx";
@@ -66,32 +70,32 @@ function AnimatedRoutes() {
         <Route path="/signup" element={<SignUp />} />
 
         {/* Patient Dashboard Routes */}
-        <Route path="/dashboard" element={<ClientDashboard />} />
-        <Route path="/book" element={<BookAppointment />} />
-        <Route path="/appointments" element={<MyAppointments />} />
+        <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['client', 'admin']}><ClientDashboard /></ProtectedRoute>} />
+        <Route path="/book" element={<ProtectedRoute allowedRoles={['client', 'admin']}><BookAppointment /></ProtectedRoute>} />
+        <Route path="/appointments" element={<ProtectedRoute allowedRoles={['client', 'admin']}><MyAppointments /></ProtectedRoute>} />
 
         {/* Staff / Reception Terminal Routes */}
-        <Route path="/staff/dashboard" element={<StaffDashboard />} />
-        <Route path="/staff/check-in" element={<ClientCheckIn />} />
-        <Route path="/staff/queue" element={<ClientQueue />} />
-        <Route path="/staff/appointments" element={<StaffAppointments />} />
-        <Route path="/staff/payments" element={<PaymentRecords />} />
-        <Route path="/staff/settings" element={<StaffSettings />} />
-        <Route path="/staff/records" element={<ClientRecords />} />
-        <Route path="/staff/new-client" element={<NewClient />} />
+        <Route path="/staff/dashboard" element={<ProtectedRoute allowedRoles={['staff', 'admin']}><StaffDashboard /></ProtectedRoute>} />
+        <Route path="/staff/check-in" element={<ProtectedRoute allowedRoles={['staff', 'admin']}><ClientCheckIn /></ProtectedRoute>} />
+        <Route path="/staff/queue" element={<ProtectedRoute allowedRoles={['staff', 'admin']}><ClientQueue /></ProtectedRoute>} />
+        <Route path="/staff/appointments" element={<ProtectedRoute allowedRoles={['staff', 'admin']}><StaffAppointments /></ProtectedRoute>} />
+        <Route path="/staff/payments" element={<ProtectedRoute allowedRoles={['staff', 'admin']}><PaymentRecords /></ProtectedRoute>} />
+        <Route path="/staff/settings" element={<ProtectedRoute allowedRoles={['staff', 'admin']}><StaffSettings /></ProtectedRoute>} />
+        <Route path="/staff/records" element={<ProtectedRoute allowedRoles={['staff', 'admin']}><ClientRecords /></ProtectedRoute>} />
+        <Route path="/staff/new-client" element={<ProtectedRoute allowedRoles={['staff', 'admin']}><NewClient /></ProtectedRoute>} />
 
         {/* Doctor Terminal Routes */}
-        <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
-        <Route path="/doctor/queue" element={<DoctorQueue />} />
-        <Route path="/doctor/consultation" element={<Consultation />} />
-        <Route path="/doctor/records" element={<DoctorRecords />} />
+        <Route path="/doctor/dashboard" element={<ProtectedRoute allowedRoles={['doctor', 'admin']}><DoctorDashboard /></ProtectedRoute>} />
+        <Route path="/doctor/queue" element={<ProtectedRoute allowedRoles={['doctor', 'admin']}><DoctorQueue /></ProtectedRoute>} />
+        <Route path="/doctor/consultation" element={<ProtectedRoute allowedRoles={['doctor', 'admin']}><Consultation /></ProtectedRoute>} />
+        <Route path="/doctor/records" element={<ProtectedRoute allowedRoles={['doctor', 'admin']}><DoctorRecords /></ProtectedRoute>} />
 
         {/* Admin Terminal Routes */}
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/staff" element={<StaffManagement />} />
-        <Route path="/admin/revenue" element={<RevenueTracker />} />
-        <Route path="/admin/inventory" element={<Inventory />} />
-        <Route path="/admin/maintenance" element={<Maintenance />} />
+        <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/staff" element={<ProtectedRoute allowedRoles={['admin']}><StaffManagement /></ProtectedRoute>} />
+        <Route path="/admin/revenue" element={<ProtectedRoute allowedRoles={['admin']}><RevenueTracker /></ProtectedRoute>} />
+        <Route path="/admin/inventory" element={<ProtectedRoute allowedRoles={['admin']}><Inventory /></ProtectedRoute>} />
+        <Route path="/admin/maintenance" element={<ProtectedRoute allowedRoles={['admin']}><Maintenance /></ProtectedRoute>} />
       </Routes>
     </AnimatePresence>
   );
@@ -100,9 +104,11 @@ function AnimatedRoutes() {
 function App() {
   return (
     <Router>
-      <div className="w-full min-h-screen bg-white text-slate-900">
-        <AnimatedRoutes />
-      </div>
+      <AuthProvider>
+        <div className="w-full min-h-screen bg-white text-slate-900">
+          <AnimatedRoutes />
+        </div>
+      </AuthProvider>
     </Router>
   );
 }

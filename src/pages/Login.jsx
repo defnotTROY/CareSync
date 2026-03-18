@@ -1,30 +1,56 @@
 import { useState } from 'react';
-import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom'; // Added useNavigate
+import { Eye, EyeOff, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import PageTransition from "../components/layout/PageTransition.jsx";
+import { supabase } from '../lib/supabase';
 
 export default function Login() {
     const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
-
-    // 1. Add states for input
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-    // 2. Handle the Role-Based Redirect
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
+        setError('');
+        setIsLoading(true);
 
-        const lowerEmail = email.toLowerCase();
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
 
-        if (lowerEmail.includes('admin')) {
+        if (signInError) {
+            setError(signInError.message);
+            setIsLoading(false);
+            return;
+        }
+
+        // Successfully authenticated, now fetch role to navigate correctly
+        const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
+
+        setIsLoading(false);
+
+        if (profileError || !profileData) {
+            // Default edge case fallback
+            navigate('/dashboard');
+            return;
+        }
+
+        const role = profileData.role;
+        if (role === 'admin') {
             navigate('/admin/dashboard');
-        } else if (lowerEmail.includes('doctor')) {
+        } else if (role === 'doctor') {
             navigate('/doctor/dashboard');
-        } else if (lowerEmail.includes('staff')) {
+        } else if (role === 'staff') {
             navigate('/staff/dashboard');
         } else {
-            // Default role is Client/Patient
             navigate('/dashboard');
         }
     };
@@ -72,6 +98,13 @@ export default function Login() {
                             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Please enter your credentials</p>
                         </div>
 
+                        {error && (
+                            <div className="flex items-center gap-3 p-4 bg-red-50 text-red-600 rounded-2xl border border-red-100 text-sm font-bold shadow-sm">
+                                <AlertCircle size={18} className="shrink-0" />
+                                <p>{error}</p>
+                            </div>
+                        )}
+
                         <form onSubmit={handleLogin} className="space-y-6">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Address</label>
@@ -82,6 +115,7 @@ export default function Login() {
                                     onChange={(e) => setEmail(e.target.value)}
                                     placeholder="e.g. admin@caresync.com"
                                     className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-black focus:bg-white focus:outline-none transition-all font-bold text-sm"
+                                    disabled={isLoading}
                                 />
                             </div>
 
@@ -98,6 +132,7 @@ export default function Login() {
                                         onChange={(e) => setPassword(e.target.value)}
                                         placeholder="••••••••"
                                         className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-black focus:bg-white focus:outline-none transition-all font-bold text-sm"
+                                        disabled={isLoading}
                                     />
                                     <div
                                         className="absolute right-5 top-4 text-slate-300 cursor-pointer hover:text-black transition-colors"
@@ -108,8 +143,19 @@ export default function Login() {
                                 </div>
                             </div>
 
-                            <button type="submit" className="w-full py-5 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200">
-                                Enter Terminal
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full py-5 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 disabled:opacity-70"
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        Authenticating...
+                                    </>
+                                ) : (
+                                    "Enter Terminal"
+                                )}
                             </button>
                         </form>
 
@@ -118,7 +164,7 @@ export default function Login() {
                             <div className="relative flex justify-center text-[10px] uppercase font-black tracking-[0.3em]"><span className="bg-white px-4 text-slate-300">Identity Provider</span></div>
                         </div>
 
-                        <button className="w-full py-4 border-2 border-slate-100 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-slate-50 transition-all uppercase">
+                        <button type="button" className="w-full py-4 border-2 border-slate-100 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-slate-50 transition-all uppercase">
                             <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-4 h-4 grayscale opacity-50" alt="google" />
                             Continue with Google
                         </button>
