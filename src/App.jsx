@@ -13,6 +13,9 @@ import WhyChooseUs from "./components/home/WhyChooseUs.jsx";
 // Pages
 import Login from "./pages/Login.jsx";
 import SignUp from "./pages/SignUp.jsx";
+import ClientDashboard from "./pages/ClientDashboard.jsx";
+import BookAppointment from "./pages/BookAppointment.jsx";
+import MyAppointments from "./pages/MyAppointments.jsx"; // 1. Added MyAppointments import
 
 function LandingPage() {
   return (
@@ -28,17 +31,23 @@ function LandingPage() {
   );
 }
 
-// 1. Create a wrapper component to handle the location-based animation
+// Wrapper component to handle location-based animations
 function AnimatedRoutes() {
   const location = useLocation();
 
   return (
     <AnimatePresence mode="wait">
-      {/* We add 'location' and a unique 'key' so Framer Motion tracks the swap */}
+      {/* key={location.pathname} ensures the transition triggers on every route change */}
       <Routes location={location} key={location.pathname}>
+        {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
+
+        {/* Patient Dashboard Routes */}
+        <Route path="/dashboard" element={<ClientDashboard />} />
+        <Route path="/book" element={<BookAppointment />} />
+        <Route path="/appointments" element={<MyAppointments />} /> {/* 2. Added Appointments Route */}
       </Routes>
     </AnimatePresence>
   );
