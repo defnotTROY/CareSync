@@ -1,0 +1,45 @@
+@reference "tailwindcss/theme";
+
+/* ============================================
+   NEW CLIENT — Specific Styles
+   ============================================ */
+
+.newclient-progress-step {
+    @apply h-2 flex-1 rounded-full transition-all duration-500;
+}
+
+.newclient-form-card {
+    @apply col-span-8 bg-white border-2 border-slate-50 rounded-[2.5rem] p-12 shadow-sm space-y-10;
+}
+
+.newclient-step-title {
+    @apply text-2xl font-black uppercase tracking-tight;
+}
+
+.newclient-input {
+    @apply w-full p-5 bg-slate-50 border-2 border-transparent focus:border-black rounded-2xl outline-none font-bold transition-all;
+}
+
+.newclient-select {
+    @apply w-full p-5 bg-slate-50 border-2 border-transparent focus:border-black rounded-2xl outline-none font-bold transition-all appearance-none;
+}
+
+.newclient-type-btn {
+    @apply p-6 border-2 border-slate-50 rounded-[2rem] font-black uppercase text-xs tracking-widest hover:border-black transition-all text-center;
+}
+
+.newclient-nav-footer {
+    @apply pt-10 border-t border-slate-50 flex justify-between items-center;
+}
+
+.newclient-back-btn {
+    @apply text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-black;
+}
+
+.newclient-info-title {
+    @apply text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500;
+}
+
+.newclient-info-text {
+    @apply text-lg font-bold leading-tight uppercase tracking-tight;
+}

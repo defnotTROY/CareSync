@@ -1,0 +1,107 @@
+@reference "tailwindcss/theme";
+
+/* ============================================
+   LOGIN PAGE — Specific Styles
+   ============================================ */
+
+/* ---- Auth Layout ---- */
+.auth-layout {
+    @apply flex min-h-screen bg-white text-black;
+}
+
+/* ---- Branding Panel (Left/Right dark side) ---- */
+.auth-brand-panel {
+    @apply hidden lg:flex w-1/2 bg-black p-16 flex-col justify-between relative overflow-hidden;
+}
+
+.auth-brand-watermark {
+    @apply absolute text-white/5 w-96 h-96;
+}
+
+.auth-brand-logo {
+    @apply relative z-10 flex items-center gap-2;
+}
+
+.auth-brand-logo-icon {
+    @apply w-8 h-8 bg-white rounded-lg flex items-center justify-center;
+}
+
+.auth-brand-logo-text {
+    @apply text-white font-bold text-xl tracking-tight uppercase;
+}
+
+.auth-brand-content {
+    @apply relative z-10 space-y-6;
+}
+
+.auth-brand-heading {
+    @apply text-5xl font-black text-white leading-tight uppercase;
+}
+
+.auth-brand-description {
+    @apply text-slate-400 max-w-md leading-relaxed font-medium;
+}
+
+.auth-brand-stats {
+    @apply flex gap-12 pt-8 border-t border-white/10;
+}
+
+.auth-brand-stat-value {
+    @apply text-2xl font-bold text-white tracking-tighter;
+}
+
+.auth-brand-stat-label {
+    @apply text-[10px] uppercase tracking-widest text-slate-500 font-black;
+}
+
+/* ---- Form Panel ---- */
+.auth-form-panel {
+    @apply w-full lg:w-1/2 flex items-center justify-center p-8;
+}
+
+.auth-form-container {
+    @apply w-full max-w-md space-y-10;
+}
+
+.auth-form-header {
+    @apply space-y-2;
+}
+
+.auth-form-title {
+    @apply text-4xl font-black tracking-tight uppercase italic;
+}
+
+.auth-form-subtitle {
+    @apply text-slate-400 text-xs font-bold uppercase tracking-widest;
+}
+
+.auth-form {
+    @apply space-y-6;
+}
+
+.auth-form-field {
+    @apply space-y-2;
+}
+
+.auth-forgot-link {
+    @apply text-[10px] font-black uppercase tracking-widest hover:underline;
+}
+
+/* ---- Divider ---- */
+.auth-divider-text {
+    @apply bg-white px-4 text-slate-300;
+}
+
+/* ---- Footer ---- */
+.auth-footer-text {
+    @apply text-center text-xs text-slate-400 font-bold uppercase tracking-widest;
+}
+
+.auth-footer-link {
+    @apply text-black font-black hover:underline;
+}
+
+/* ---- Google Icon ---- */
+.google-icon {
+    @apply w-4 h-4 grayscale opacity-50;
+}

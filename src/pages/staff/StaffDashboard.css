@@ -1,0 +1,69 @@
+@reference "tailwindcss/theme";
+
+/* ============================================
+   STAFF DASHBOARD — Specific Styles
+   ============================================ */
+
+/* ---- Stat Grid ---- */
+.dashboard-stat-grid {
+    @apply grid grid-cols-4 gap-6;
+}
+
+/* ---- Live Flow ---- */
+.dashboard-flow-card {
+    @apply col-span-8 bg-white border-2 border-slate-50 rounded-[2.5rem] p-10 space-y-8 shadow-sm;
+}
+
+.dashboard-flow-item {
+    @apply flex items-center justify-between p-5 border border-slate-50 rounded-2xl hover:bg-slate-50 transition-colors;
+}
+
+.dashboard-flow-icon {
+    @apply w-11 h-11 rounded-xl flex items-center justify-center bg-white border border-slate-100 shadow-sm;
+}
+
+.dashboard-flow-name {
+    @apply font-bold text-sm text-slate-950;
+}
+
+.dashboard-flow-action {
+    @apply text-[10px] font-medium text-slate-400 uppercase tracking-tight;
+}
+
+.dashboard-flow-time {
+    @apply text-[10px] font-black text-slate-300 uppercase tracking-widest;
+}
+
+/* ---- System Notice ---- */
+.dashboard-notice {
+    @apply bg-black rounded-[2.5rem] p-10 text-white space-y-6 shadow-xl relative overflow-hidden;
+}
+
+.dashboard-notice-glow {
+    @apply absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-2xl;
+}
+
+.dashboard-notice-label {
+    @apply font-black uppercase text-xs tracking-[0.2em] text-white/40;
+}
+
+.dashboard-notice-text {
+    @apply text-lg font-bold leading-tight uppercase tracking-tight;
+}
+
+.dashboard-notice-footer {
+    @apply pt-6 border-t border-white/10 flex items-center gap-3;
+}
+
+.dashboard-notice-status {
+    @apply text-[10px] font-black uppercase tracking-widest text-emerald-500;
+}
+
+/* ---- Date Display ---- */
+.dashboard-date {
+    @apply text-slate-500 font-medium uppercase text-[10px] tracking-[0.2em];
+}
+
+.dashboard-stat-change {
+    @apply text-[10px] font-bold pb-1;
+}

@@ -1,0 +1,37 @@
+@reference "tailwindcss/theme";
+
+/* ============================================
+   CLIENT RECORDS — Specific Styles
+   ============================================ */
+
+.records-patient-id {
+    @apply text-[10px] font-black px-2 py-1 bg-slate-100 rounded text-slate-500 uppercase tracking-widest;
+}
+
+.records-patient-name {
+    @apply font-black text-slate-950 uppercase tracking-tight;
+}
+
+.records-patient-email {
+    @apply text-[10px] font-medium text-slate-400 lowercase;
+}
+
+.records-status-dot {
+    @apply w-2 h-2 rounded-full;
+}
+
+.records-action-btn {
+    @apply p-3 hover:bg-white hover:shadow-md rounded-xl text-slate-400 transition-all border border-transparent hover:border-slate-100;
+}
+
+.records-action-edit {
+    @apply p-3 hover:bg-white hover:shadow-md rounded-xl text-slate-400 hover:text-black transition-all border border-transparent hover:border-slate-100;
+}
+
+.records-action-delete {
+    @apply p-3 hover:bg-white hover:shadow-md rounded-xl text-slate-400 hover:text-red-500 transition-all border border-transparent hover:border-slate-100;
+}
+
+.records-footer-text {
+    @apply text-[10px] font-black text-slate-400 uppercase tracking-widest;
+}

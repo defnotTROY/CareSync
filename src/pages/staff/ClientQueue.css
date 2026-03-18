@@ -1,0 +1,60 @@
+@reference "tailwindcss/theme";
+
+/* ============================================
+   CLIENT QUEUE — Specific Styles
+   ============================================ */
+
+/* ---- Header Info ---- */
+.queue-header-stats {
+    @apply flex items-center gap-4 text-slate-500 font-bold text-xs uppercase tracking-widest;
+}
+
+.queue-active-count {
+    @apply flex items-center gap-2 text-emerald-600;
+}
+
+/* ---- Queue Cards ---- */
+.queue-patient-card {
+    @apply bg-white border-2 border-slate-100 rounded-3xl p-6 flex items-center justify-between hover:border-black transition-all;
+}
+
+.queue-patient-avatar {
+    @apply w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center font-black text-slate-300;
+}
+
+.queue-patient-id {
+    @apply text-[9px] font-black px-1.5 py-0.5 bg-black text-white rounded uppercase;
+}
+
+.queue-patient-name {
+    @apply font-black text-lg uppercase tracking-tight;
+}
+
+.queue-patient-service {
+    @apply text-[10px] font-bold text-slate-400 uppercase tracking-widest;
+}
+
+.queue-call-btn {
+    @apply flex items-center gap-2 bg-slate-100 hover:bg-black hover:text-white px-6 py-3 rounded-xl transition-all font-black uppercase text-[10px] tracking-widest;
+}
+
+/* ---- Serving Now ---- */
+.queue-serving-card {
+    @apply bg-black text-white rounded-[2.5rem] p-8 space-y-6 shadow-xl relative overflow-hidden;
+}
+
+.queue-serving-badge {
+    @apply bg-emerald-500 text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-widest;
+}
+
+.queue-serving-room {
+    @apply text-[10px] font-bold text-slate-500 uppercase tracking-widest;
+}
+
+.queue-serving-name {
+    @apply text-2xl font-black uppercase tracking-tighter;
+}
+
+.queue-finish-btn {
+    @apply w-full py-4 bg-white text-black rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-500 hover:text-white transition-all shadow-lg;
+}

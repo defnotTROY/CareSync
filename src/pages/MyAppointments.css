@@ -1,0 +1,54 @@
+@reference "tailwindcss/theme";
+
+/* ============================================
+   MY APPOINTMENTS — Specific Styles
+   ============================================ */
+
+.appointments-topbar-search {
+    @apply relative;
+}
+
+.appointments-search-icon {
+    @apply absolute left-3 top-1/2 -translate-y-1/2 text-slate-400;
+}
+
+.appointments-content {
+    @apply p-16 space-y-12;
+}
+
+.appointments-header {
+    @apply flex justify-between items-end;
+}
+
+.appointments-new-btn {
+    @apply flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-slate-800 transition-all;
+}
+
+/* ---- Appointment Card ---- */
+.appointment-card {
+    @apply p-10 border-2 border-slate-100 rounded-[2rem] space-y-8;
+}
+
+.appointment-card-header {
+    @apply flex justify-between items-start;
+}
+
+.appointment-card-doctor {
+    @apply text-2xl font-black text-slate-900 uppercase;
+}
+
+.appointment-card-specialty {
+    @apply text-slate-400 font-bold uppercase text-[10px] tracking-widest;
+}
+
+.appointment-card-date {
+    @apply text-xl font-black text-slate-900;
+}
+
+.appointment-card-time {
+    @apply text-xs font-bold text-slate-400;
+}
+
+.appointment-card-actions {
+    @apply flex justify-between items-center;
+}

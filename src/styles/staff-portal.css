@@ -1,0 +1,403 @@
+@reference "tailwindcss/theme";
+
+/* ============================================
+   STAFF PORTAL — Shared Styles
+   ============================================
+   Common classes used across all Staff Portal pages.
+   Uses Tailwind's @apply to keep JSX clean.
+   ============================================ */
+
+/* ---- LAYOUT ---- */
+.staff-layout {
+    @apply flex min-h-screen bg-[#F8FAFC] text-slate-900 font-sans;
+}
+
+/* ---- SIDEBAR ---- */
+.staff-sidebar {
+    @apply w-72 bg-black flex flex-col justify-between py-10 px-6 shrink-0 h-screen sticky top-0;
+}
+
+.staff-sidebar-top {
+    @apply space-y-10;
+}
+
+.staff-brand {
+    @apply flex items-center gap-3 px-2;
+}
+
+.staff-brand-icon {
+    @apply w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center font-bold text-white text-xl shadow-lg shadow-emerald-500/20;
+}
+
+.staff-brand-text {
+    @apply flex flex-col text-white font-black uppercase tracking-tight leading-none;
+}
+
+.staff-brand-name {
+    @apply text-lg;
+}
+
+.staff-brand-sub {
+    @apply text-slate-500 text-[10px] tracking-widest mt-1;
+}
+
+.staff-nav {
+    @apply space-y-1;
+}
+
+.staff-nav-link {
+    @apply w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all text-slate-400 hover:text-white hover:bg-white/5;
+}
+
+.staff-nav-link--active {
+    @apply bg-white text-black font-bold shadow-lg shadow-white/5;
+}
+
+.staff-nav-icon {
+    @apply text-slate-400;
+}
+
+.staff-nav-icon--active {
+    @apply text-black;
+}
+
+.staff-nav-label {
+    @apply text-sm;
+}
+
+.staff-sidebar-bottom {
+    @apply pt-6 border-t border-white/10 space-y-2 px-2;
+}
+
+.staff-settings-link {
+    @apply flex items-center gap-4 px-4 py-3 rounded-xl transition-all text-slate-400 hover:text-white hover:bg-white/5;
+}
+
+.staff-settings-link--active {
+    @apply bg-white text-black font-bold shadow-lg shadow-white/5;
+}
+
+.staff-user-section {
+    @apply flex items-center justify-between pt-2;
+}
+
+.staff-user-info {
+    @apply flex items-center gap-3;
+}
+
+.staff-user-avatar {
+    @apply w-9 h-9 bg-slate-800 rounded-full flex items-center justify-center text-[10px] text-white font-bold;
+}
+
+.staff-user-name {
+    @apply text-white text-[11px] font-bold uppercase leading-none;
+}
+
+.staff-user-role {
+    @apply text-slate-500 text-[8px] font-bold uppercase tracking-widest mt-1;
+}
+
+.staff-logout-btn {
+    @apply p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all;
+}
+
+/* ---- MAIN CONTENT ---- */
+.staff-main {
+    @apply flex-1 p-12 space-y-10 overflow-y-auto;
+}
+
+.staff-main-sm {
+    @apply flex-1 p-12 space-y-8 overflow-y-auto;
+}
+
+/* ---- PAGE HEADER ---- */
+.staff-header {
+    @apply flex justify-between items-center;
+}
+
+.staff-header-end {
+    @apply flex justify-between items-end;
+}
+
+.staff-header-info {
+    @apply space-y-1;
+}
+
+.staff-page-title {
+    @apply text-5xl font-black text-slate-950 uppercase tracking-tighter;
+}
+
+.staff-page-title-sm {
+    @apply text-4xl font-black text-slate-950 uppercase tracking-tighter leading-none;
+}
+
+.staff-page-subtitle {
+    @apply text-slate-500 font-medium uppercase text-[10px] tracking-[0.2em];
+}
+
+.staff-page-subtitle-plain {
+    @apply text-slate-500 font-medium;
+}
+
+/* ---- NOTIFICATION BELL ---- */
+.staff-bell-btn {
+    @apply p-3 bg-white border border-slate-200 rounded-full text-slate-400 hover:text-black shadow-sm relative;
+}
+
+.staff-bell-dot {
+    @apply absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-white rounded-full;
+}
+
+/* ---- CARDS ---- */
+.staff-card {
+    @apply bg-white border-2 border-slate-50 rounded-[2.5rem] p-10 space-y-8 shadow-sm;
+}
+
+.staff-card-sm {
+    @apply bg-white border-2 border-slate-100 rounded-[2.5rem] p-8 space-y-8 shadow-sm;
+}
+
+.staff-card-bordered {
+    @apply bg-white border-2 border-slate-100 rounded-3xl p-6;
+}
+
+.staff-dark-panel {
+    @apply bg-black text-white rounded-[2.5rem] p-10 space-y-6 shadow-xl relative overflow-hidden;
+}
+
+.staff-dark-panel-glow {
+    @apply absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-2xl;
+}
+
+.staff-dark-panel-glow-emerald {
+    @apply absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl;
+}
+
+.staff-dark-panel-glow-top {
+    @apply absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl -mr-16 -mt-16;
+}
+
+/* ---- STAT CARDS ---- */
+.staff-stat-card {
+    @apply bg-white p-8 rounded-[2rem] border-2 border-slate-50 shadow-sm space-y-4 hover:border-slate-200 transition-all;
+}
+
+.staff-stat-icon {
+    @apply w-12 h-12 rounded-2xl flex items-center justify-center;
+}
+
+.staff-stat-label {
+    @apply text-[10px] font-black uppercase tracking-widest text-slate-400;
+}
+
+.staff-stat-value {
+    @apply text-3xl font-black text-slate-950;
+}
+
+.staff-stat-row {
+    @apply flex items-end gap-3;
+}
+
+/* ---- TYPOGRAPHY ---- */
+.staff-section-title {
+    @apply font-black uppercase text-sm tracking-widest flex items-center gap-2;
+}
+
+.staff-section-label {
+    @apply font-black uppercase text-xs tracking-[0.2em] text-slate-400;
+}
+
+.staff-section-label-px {
+    @apply font-black uppercase text-xs tracking-[0.2em] text-slate-400 px-4;
+}
+
+.staff-form-label {
+    @apply text-[10px] font-black uppercase text-slate-400 ml-2;
+}
+
+.staff-form-label-tracking {
+    @apply text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest;
+}
+
+/* ---- FORM INPUTS ---- */
+.staff-input {
+    @apply w-full p-5 bg-slate-50 border-2 border-transparent focus:border-black rounded-2xl outline-none font-bold transition-all;
+}
+
+.staff-input-sm {
+    @apply w-full p-4 bg-slate-50 border-2 border-transparent focus:border-black rounded-2xl outline-none font-bold text-sm transition-all;
+}
+
+.staff-search-input {
+    @apply w-full pl-16 pr-8 py-5 bg-white border-2 border-slate-50 rounded-3xl outline-none focus:border-black font-bold text-sm shadow-sm transition-all;
+}
+
+.staff-search-input-sm {
+    @apply pl-12 pr-6 py-4 bg-white border-2 border-slate-50 rounded-2xl focus:border-black outline-none w-64 text-sm font-bold shadow-sm transition-all;
+}
+
+.staff-search-icon {
+    @apply absolute left-6 top-1/2 -translate-y-1/2 text-slate-400;
+}
+
+.staff-search-icon-sm {
+    @apply absolute left-4 top-1/2 -translate-y-1/2 text-slate-400;
+}
+
+/* ---- BUTTONS ---- */
+.staff-btn-primary {
+    @apply px-8 py-4 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-slate-800 transition-all shadow-lg;
+}
+
+.staff-btn-primary-full {
+    @apply w-full py-5 bg-black text-white rounded-3xl font-black uppercase text-xs tracking-widest hover:bg-slate-800 transition-all shadow-lg;
+}
+
+.staff-btn-primary-xl {
+    @apply px-10 py-5 bg-black text-white rounded-3xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-3 shadow-xl shadow-black/10 transition-transform active:scale-95;
+}
+
+.staff-btn-confirm {
+    @apply px-10 py-5 bg-emerald-500 text-white rounded-3xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-3 shadow-xl shadow-emerald-500/20 transition-transform active:scale-95;
+}
+
+.staff-btn-filter {
+    @apply px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:border-black transition-all;
+}
+
+.staff-btn-filter-rounded {
+    @apply px-8 bg-white border-2 border-slate-50 rounded-3xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:border-black transition-all shadow-sm;
+}
+
+.staff-btn-icon {
+    @apply p-3 bg-slate-50 rounded-xl text-slate-400 hover:text-black transition-all;
+}
+
+.staff-btn-close {
+    @apply p-4 bg-white border-2 border-slate-50 rounded-2xl text-slate-400 hover:text-black hover:border-black transition-all shadow-sm;
+}
+
+.staff-btn-activate {
+    @apply px-10 py-4 bg-black text-white rounded-2xl font-bold uppercase text-xs tracking-widest;
+}
+
+.staff-btn-subtle {
+    @apply text-[10px] font-black uppercase text-slate-400 hover:text-black transition-colors;
+}
+
+/* ---- TABLES ---- */
+.staff-table-wrapper {
+    @apply bg-white border-2 border-slate-50 rounded-[2.5rem] shadow-sm overflow-hidden;
+}
+
+.staff-table {
+    @apply w-full text-left;
+}
+
+.staff-table-head-row {
+    @apply border-b border-slate-50;
+}
+
+.staff-th {
+    @apply px-10 py-6 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em];
+}
+
+.staff-th-sm {
+    @apply px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest;
+}
+
+.staff-table-body {
+    @apply divide-y divide-slate-50;
+}
+
+.staff-table-row {
+    @apply hover:bg-slate-50/50 transition-colors;
+}
+
+.staff-td {
+    @apply px-10 py-7;
+}
+
+.staff-td-sm {
+    @apply px-8 py-6;
+}
+
+.staff-table-footer {
+    @apply p-8 border-t border-slate-50 flex justify-between items-center bg-slate-50/30;
+}
+
+.staff-pagination-btn {
+    @apply px-4 py-2 bg-white border border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest hover:border-black transition-all shadow-sm;
+}
+
+/* ---- STATUS INDICATORS ---- */
+.staff-pulse-dot {
+    @apply w-2 h-2 bg-emerald-500 rounded-full animate-pulse;
+}
+
+.staff-status-badge {
+    @apply text-[10px] font-black uppercase tracking-widest;
+}
+
+.staff-active-indicator {
+    @apply flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100;
+}
+
+.staff-active-label {
+    @apply text-[10px] font-black text-emerald-700 uppercase tracking-widest;
+}
+
+/* ---- TABS ---- */
+.staff-tab {
+    @apply flex-1 py-5 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2;
+}
+
+.staff-tab--active {
+    @apply bg-white border-b-2 border-black;
+}
+
+.staff-tab--inactive {
+    @apply bg-slate-50 text-slate-400;
+}
+
+/* ---- GRID LAYOUTS ---- */
+.staff-grid-12 {
+    @apply grid grid-cols-12 gap-8;
+}
+
+.staff-grid-12-lg {
+    @apply grid grid-cols-12 gap-10;
+}
+
+/* ---- MISC ---- */
+.staff-section-border {
+    @apply flex justify-between items-center border-b border-slate-50 pb-6;
+}
+
+.staff-progress-bar {
+    @apply flex gap-4 max-w-2xl;
+}
+
+.staff-toggle-on {
+    @apply w-12 h-6 bg-emerald-500 rounded-full relative p-1 cursor-pointer;
+}
+
+.staff-toggle-dot {
+    @apply w-4 h-4 bg-white rounded-full ml-auto;
+}
+
+/* ---- ANIMATIONS ---- */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInBottom {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+}

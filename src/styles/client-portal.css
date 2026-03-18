@@ -1,0 +1,438 @@
+@reference "tailwindcss/theme";
+
+/* ============================================
+   CLIENT PORTAL — Shared Styles
+   ============================================
+   Common classes used across all Client Portal pages.
+   Uses Tailwind's @apply to keep JSX clean.
+   ============================================ */
+
+/* ---- LAYOUT ---- */
+.client-layout {
+    @apply flex min-h-screen bg-white text-slate-900 font-sans;
+}
+
+/* ---- SIDEBAR ---- */
+.client-sidebar {
+    @apply w-72 bg-black flex flex-col justify-between py-10 px-6 shrink-0 h-screen sticky top-0;
+}
+
+.sidebar-brand {
+    @apply flex items-center gap-3 px-2;
+}
+
+.sidebar-brand-icon {
+    @apply w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/20;
+}
+
+.sidebar-brand-name {
+    @apply text-white font-black text-lg leading-tight tracking-tight uppercase;
+}
+
+.sidebar-brand-sub {
+    @apply text-slate-500 text-[10px] font-bold uppercase tracking-widest;
+}
+
+.sidebar-nav {
+    @apply space-y-2;
+}
+
+.sidebar-nav-link {
+    @apply flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all text-slate-400 hover:text-white hover:bg-white/5;
+}
+
+.sidebar-nav-link--active {
+    @apply bg-white text-black font-bold shadow-lg shadow-white/5;
+}
+
+.sidebar-nav-icon {
+    @apply text-slate-400;
+}
+
+.sidebar-nav-icon--active {
+    @apply text-black;
+}
+
+.sidebar-nav-label {
+    @apply text-sm tracking-tight;
+}
+
+.sidebar-bottom {
+    @apply space-y-6;
+}
+
+.sidebar-user-section {
+    @apply pt-6 border-t border-white/10 flex items-center justify-between;
+}
+
+.sidebar-avatar {
+    @apply w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center overflow-hidden border border-white/10;
+}
+
+.sidebar-avatar-sm {
+    @apply w-8 h-8 bg-slate-800 rounded-full flex items-center justify-center text-xs;
+}
+
+.sidebar-user-name {
+    @apply text-white text-sm font-bold;
+}
+
+.sidebar-user-role {
+    @apply text-slate-500 text-[10px] font-bold uppercase tracking-tighter;
+}
+
+.sidebar-logout-btn {
+    @apply text-slate-500 hover:text-red-400 transition-colors;
+}
+
+.sidebar-settings-link {
+    @apply flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-white transition-colors;
+}
+
+/* ---- MAIN CONTENT ---- */
+.main-content {
+    @apply flex-1 p-16 overflow-y-auto;
+}
+
+.main-content-split {
+    @apply flex-1 p-16 flex gap-12 overflow-y-auto;
+}
+
+/* ---- TYPOGRAPHY ---- */
+.page-title {
+    @apply text-5xl font-black text-slate-950 uppercase tracking-tighter;
+}
+
+.page-subtitle {
+    @apply text-slate-500 font-medium;
+}
+
+.section-title {
+    @apply text-lg font-black uppercase tracking-tight flex items-center gap-2;
+}
+
+.section-title-lg {
+    @apply text-2xl font-black uppercase tracking-tight;
+}
+
+.form-label {
+    @apply text-[10px] font-black uppercase tracking-widest text-slate-400;
+}
+
+.form-label-sm {
+    @apply text-xs font-bold uppercase tracking-widest text-slate-400;
+}
+
+/* ---- FORM INPUTS ---- */
+.form-input {
+    @apply w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-black focus:bg-white focus:outline-none transition-all font-bold text-sm;
+}
+
+.form-input-light {
+    @apply w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-xl focus:border-black focus:outline-none transition-all;
+}
+
+/* ---- BUTTONS ---- */
+.btn-primary {
+    @apply px-10 py-4 bg-black text-white rounded-xl font-bold uppercase text-xs tracking-widest flex items-center gap-3 shadow-lg hover:bg-slate-800 transition-all;
+}
+
+.btn-primary-full {
+    @apply w-full py-5 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 disabled:opacity-70;
+}
+
+.btn-secondary {
+    @apply px-8 py-3.5 border-2 border-slate-200 rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-slate-50 transition-all text-slate-600;
+}
+
+.btn-secondary-sm {
+    @apply px-8 py-3 border-2 border-slate-100 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-slate-50 transition-all;
+}
+
+.btn-primary-sm {
+    @apply px-8 py-3 bg-black text-white rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-slate-800 transition-all;
+}
+
+.btn-confirm {
+    @apply px-10 py-4 bg-emerald-500 text-white rounded-xl font-bold uppercase text-xs tracking-widest flex items-center gap-3 disabled:opacity-50 shadow-lg shadow-emerald-100;
+}
+
+.btn-google {
+    @apply w-full py-4 border-2 border-slate-100 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-slate-50 transition-all uppercase;
+}
+
+.btn-icon {
+    @apply p-2 bg-slate-50 rounded-lg text-slate-400 hover:text-black transition-colors;
+}
+
+/* ---- CARDS ---- */
+.card {
+    @apply p-8 border-2 border-slate-100 rounded-3xl bg-white shadow-sm;
+}
+
+.card-bordered {
+    @apply p-10 border-2 border-slate-100 rounded-[2rem] space-y-8;
+}
+
+.card-shadow {
+    @apply relative bg-white border-2 border-black rounded-[2rem] p-10 space-y-8;
+}
+
+.card-shadow-offset {
+    @apply absolute inset-0 bg-black rounded-[2rem] translate-x-1.5 translate-y-1.5;
+}
+
+.card-confirmation {
+    @apply w-full max-w-md bg-white border-2 border-black rounded-[2.5rem] p-8 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] space-y-8 overflow-hidden relative;
+}
+
+/* ---- INFO CHIPS & BADGES ---- */
+.info-chip {
+    @apply inline-block px-3 py-1 bg-black text-white text-[10px] font-black uppercase tracking-widest rounded-md;
+}
+
+.info-detail-row {
+    @apply flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100;
+}
+
+.info-detail-icon {
+    @apply w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-slate-900 border border-slate-200;
+}
+
+.info-detail-label {
+    @apply text-[10px] font-black uppercase tracking-widest text-slate-400;
+}
+
+.info-detail-value {
+    @apply text-sm font-bold;
+}
+
+/* ---- SUMMARY SIDEBAR (Booking) ---- */
+.summary-sidebar {
+    @apply w-80 space-y-8 h-fit sticky top-16;
+}
+
+.summary-card {
+    @apply p-8 border-2 border-slate-50 bg-slate-50/50 rounded-3xl space-y-6;
+}
+
+.summary-item {
+    @apply p-4 bg-white rounded-2xl border border-slate-100;
+}
+
+.summary-item-label {
+    @apply text-[9px] font-black uppercase text-emerald-500 mb-1;
+}
+
+.summary-item-value {
+    @apply font-bold text-sm text-slate-900 leading-none;
+}
+
+/* ---- TABS ---- */
+.tab-container {
+    @apply flex gap-8 border-b border-slate-100;
+}
+
+.tab-item {
+    @apply pb-4 text-xs font-black uppercase tracking-widest transition-all relative text-slate-400 hover:text-slate-600;
+}
+
+.tab-item--active {
+    @apply text-black;
+}
+
+.tab-indicator {
+    @apply absolute bottom-0 left-0 w-full h-0.5 bg-black;
+}
+
+/* ---- TOP BAR ---- */
+.top-bar {
+    @apply flex justify-between items-center p-8 border-b border-slate-100;
+}
+
+.top-bar-title {
+    @apply text-xl font-black uppercase tracking-tight;
+}
+
+.search-input {
+    @apply pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-lg text-sm focus:outline-none focus:border-black w-64;
+}
+
+/* ---- STEPPER (Booking) ---- */
+.stepper {
+    @apply flex items-center gap-6;
+}
+
+.stepper-circle {
+    @apply w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all;
+}
+
+.stepper-circle--active {
+    @apply border-black bg-black text-white;
+}
+
+.stepper-circle--inactive {
+    @apply border-slate-200 text-slate-400;
+}
+
+.stepper-label {
+    @apply text-[10px] font-black tracking-widest;
+}
+
+.stepper-connector {
+    @apply w-12 h-[2px];
+}
+
+/* ---- CALENDAR ---- */
+.calendar-header {
+    @apply font-black text-slate-900 uppercase tracking-tighter;
+}
+
+.calendar-day-label {
+    @apply grid grid-cols-7 gap-2 text-center text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4;
+}
+
+.calendar-day {
+    @apply p-2 rounded-lg font-bold text-sm transition-all text-slate-900 hover:bg-slate-50;
+}
+
+.calendar-day--selected {
+    @apply bg-black text-white;
+}
+
+.calendar-day--disabled {
+    @apply text-slate-200 cursor-not-allowed opacity-50;
+}
+
+/* ---- TIME SLOTS ---- */
+.time-slot {
+    @apply p-4 border-2 rounded-xl font-bold text-[11px] transition-all border-slate-100 hover:border-slate-300 text-slate-500;
+}
+
+.time-slot--selected {
+    @apply border-black bg-slate-50 shadow-sm;
+}
+
+/* ---- PURPOSE CARDS ---- */
+.purpose-card {
+    @apply p-6 rounded-xl border-2 font-bold text-sm transition-all border-slate-100 hover:border-slate-300;
+}
+
+.purpose-card--selected {
+    @apply border-black bg-slate-50 shadow-sm;
+}
+
+/* ---- PAYMENT OPTIONS ---- */
+.payment-option {
+    @apply flex items-center justify-between p-6 border-2 rounded-2xl transition-all border-slate-100 hover:border-slate-200;
+}
+
+.payment-option--selected {
+    @apply border-black bg-slate-50 shadow-md;
+}
+
+.payment-radio {
+    @apply w-5 h-5 rounded-full border-2 flex items-center justify-center border-slate-200;
+}
+
+.payment-radio--selected {
+    @apply border-black bg-black;
+}
+
+.payment-radio-dot {
+    @apply w-2 h-2 bg-white rounded-full;
+}
+
+/* ---- FOOTER ACTIONS ---- */
+.footer-actions {
+    @apply flex justify-between items-center pt-8 border-t border-slate-100;
+}
+
+.back-link {
+    @apply text-slate-400 font-bold uppercase text-xs tracking-widest flex items-center gap-2;
+}
+
+/* ---- CONFIRMATION STEP ---- */
+.confirm-section {
+    @apply flex flex-col items-center justify-center space-y-10 py-10;
+    animation: zoomIn 0.7s ease-out;
+}
+
+.confirm-icon {
+    @apply w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-inner;
+}
+
+.confirm-heading {
+    @apply text-5xl font-black uppercase tracking-tighter;
+}
+
+.confirm-subtext {
+    @apply text-slate-500 font-medium tracking-tight;
+}
+
+.confirm-label {
+    @apply text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1;
+}
+
+.confirm-value {
+    @apply font-bold text-sm uppercase;
+}
+
+.confirm-btn-download {
+    @apply flex-1 py-4 bg-black text-white rounded-2xl font-bold uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-all;
+}
+
+.confirm-btn-print {
+    @apply flex-1 py-4 border-2 border-slate-100 rounded-2xl font-bold uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-slate-50 transition-all;
+}
+
+.back-to-dashboard {
+    @apply text-slate-400 font-bold uppercase text-[10px] tracking-[0.2em] hover:text-black transition-colors pt-4 flex items-center gap-2;
+}
+
+/* ---- DIVIDERS ---- */
+.divider {
+    @apply w-full h-px bg-slate-100;
+}
+
+.divider-section {
+    @apply relative;
+}
+
+.divider-line {
+    @apply absolute inset-0 flex items-center;
+}
+
+.divider-text {
+    @apply relative flex justify-center text-[10px] uppercase font-black tracking-[0.3em];
+}
+
+/* ---- ERROR ALERT ---- */
+.error-alert {
+    @apply flex items-center gap-3 p-4 bg-red-50 text-red-600 rounded-2xl border border-red-100 text-sm font-bold shadow-sm;
+}
+
+/* ---- MISC ---- */
+.password-toggle {
+    @apply absolute right-5 top-4 text-slate-300 cursor-pointer hover:text-black transition-colors;
+}
+
+.cancel-link {
+    @apply text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-red-500 transition-colors;
+}
+
+/* ---- ANIMATIONS ---- */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes zoomIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}

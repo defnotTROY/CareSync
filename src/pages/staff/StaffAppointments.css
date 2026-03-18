@@ -1,0 +1,81 @@
+@reference "tailwindcss/theme";
+
+/* ============================================
+   STAFF APPOINTMENTS — Specific Styles
+   ============================================ */
+
+/* ---- Mini Calendar ---- */
+.appt-calendar-card {
+    @apply bg-white border-2 border-slate-100 rounded-[2.5rem] p-8 space-y-8 shadow-sm;
+}
+
+.appt-calendar-title {
+    @apply font-black uppercase text-sm tracking-tight text-slate-950 underline underline-offset-8 decoration-emerald-500;
+}
+
+.appt-calendar-nav-btn {
+    @apply p-2 hover:bg-slate-50 rounded-lg transition-colors;
+}
+
+.appt-calendar-day-labels {
+    @apply grid grid-cols-7 gap-1 text-center text-[9px] font-black uppercase text-slate-400 tracking-widest mb-2;
+}
+
+.appt-calendar-grid {
+    @apply grid grid-cols-7 gap-2;
+}
+
+.appt-calendar-day {
+    @apply p-2 rounded-xl text-xs font-bold transition-all text-slate-900 hover:bg-slate-50;
+}
+
+.appt-calendar-day--active {
+    @apply bg-black text-white shadow-lg scale-110;
+}
+
+/* ---- Insight Panel ---- */
+.appt-insight {
+    @apply bg-emerald-50 rounded-3xl p-8 border border-emerald-100 shadow-sm;
+}
+
+.appt-insight-label {
+    @apply text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-2;
+}
+
+.appt-insight-text {
+    @apply text-sm font-bold text-emerald-950 leading-relaxed italic underline decoration-emerald-200;
+}
+
+/* ---- Agenda Item ---- */
+.appt-agenda-card {
+    @apply bg-white border-2 border-slate-100 rounded-[2rem] p-6 flex items-center justify-between hover:border-black transition-all shadow-sm;
+}
+
+.appt-time-value {
+    @apply text-lg font-black text-slate-950 leading-none;
+}
+
+.appt-time-period {
+    @apply text-[9px] font-black text-slate-400 uppercase tracking-widest;
+}
+
+.appt-divider {
+    @apply h-10 w-[2px] bg-slate-100 transition-colors;
+}
+
+.appt-patient-name {
+    @apply font-black text-lg uppercase tracking-tight;
+}
+
+.appt-service-info {
+    @apply text-[10px] font-bold text-slate-400 uppercase tracking-widest;
+}
+
+.appt-checkin-btn {
+    @apply px-5 py-3 border-2 border-slate-50 rounded-xl font-black uppercase text-[9px] tracking-widest hover:border-black transition-all;
+}
+
+/* ---- Timezone ---- */
+.appt-timezone {
+    @apply flex items-center gap-2 text-[10px] font-black uppercase text-slate-400;
+}

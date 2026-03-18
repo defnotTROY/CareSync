@@ -1,0 +1,116 @@
+@reference "tailwindcss/theme";
+
+/* ============================================
+   SIGN UP PAGE — Specific Styles
+   ============================================ */
+
+/* ---- Form Panel (Sign Up variant) ---- */
+.signup-form-panel {
+    @apply w-full lg:w-1/2 flex items-center justify-center p-8 py-12 border-r border-slate-50;
+}
+
+.signup-form-container {
+    @apply w-full max-w-md space-y-8;
+}
+
+.signup-header {
+    @apply space-y-2;
+}
+
+.signup-title {
+    @apply text-3xl font-black tracking-tight uppercase;
+}
+
+.signup-subtitle {
+    @apply text-slate-500 text-sm font-medium;
+}
+
+.signup-form {
+    @apply space-y-5;
+}
+
+/* ---- Phone Input ---- */
+.phone-prefix {
+    @apply flex items-center justify-center px-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm font-bold text-slate-500;
+}
+
+/* ---- Password Strength ---- */
+.strength-meter {
+    @apply flex gap-1 h-1;
+}
+
+.strength-bar {
+    @apply h-full flex-1 rounded-full transition-all duration-300;
+}
+
+.strength-bar--inactive {
+    @apply bg-slate-100;
+}
+
+.requirement-row {
+    @apply flex items-center gap-2;
+}
+
+.requirement-icon {
+    @apply flex items-center justify-center w-3.5 h-3.5 rounded-full border;
+}
+
+.requirement-icon--met {
+    @apply bg-green-500 border-green-500 text-white;
+}
+
+.requirement-icon--unmet {
+    @apply border-slate-200 text-transparent;
+}
+
+.requirement-label {
+    @apply text-[10px] font-bold uppercase tracking-wider transition-colors;
+}
+
+.requirement-label--met {
+    @apply text-slate-900;
+}
+
+.requirement-label--unmet {
+    @apply text-slate-400;
+}
+
+/* ---- Terms ---- */
+.terms-row {
+    @apply flex items-start gap-3 pt-2;
+}
+
+.terms-checkbox {
+    @apply mt-1 w-4 h-4 accent-black cursor-pointer;
+}
+
+.terms-label {
+    @apply text-xs text-slate-500 leading-relaxed cursor-pointer;
+}
+
+.terms-link {
+    @apply text-black font-bold hover:underline;
+}
+
+/* ---- Submit Button ---- */
+.signup-submit-btn {
+    @apply w-full py-4 bg-black text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg uppercase tracking-widest text-sm disabled:opacity-20 disabled:cursor-not-allowed;
+}
+
+/* ---- Footer ---- */
+.signup-footer {
+    @apply text-center text-sm text-slate-500 mt-8;
+}
+
+.signup-footer-link {
+    @apply text-black font-bold hover:underline;
+}
+
+/* ---- Branding Panel Stats ---- */
+.signup-brand-stat-value {
+    @apply text-2xl font-bold text-white uppercase;
+}
+
+.signup-brand-stat-label {
+    @apply text-xs uppercase tracking-widest text-slate-500;
+}

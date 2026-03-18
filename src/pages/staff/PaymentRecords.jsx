@@ -4,9 +4,11 @@ import {
     LayoutDashboard, UserCheck, Users, CalendarDays,
     CreditCard, FileText, Bell, LogOut, Settings,
     Search, Download, CheckCircle2, Clock, AlertCircle,
-    ExternalLink, UserPlus // Added these
+    ExternalLink, UserPlus
 } from 'lucide-react';
 import PageTransition from "../../components/layout/PageTransition.jsx";
+import '../../styles/staff-portal.css';
+import './PaymentRecords.css';
 
 export default function PaymentRecords() {
     const location = useLocation();
@@ -34,118 +36,118 @@ export default function PaymentRecords() {
 
     return (
         <PageTransition>
-            <div className="flex min-h-screen bg-[#F8FAFC] text-slate-900 font-sans">
+            <div className="staff-layout">
 
-                {/* SIDEBAR (Standardized) */}
-                <aside className="w-72 bg-black flex flex-col justify-between py-10 px-6 shrink-0 h-screen sticky top-0">
-                    <div className="space-y-10">
-                        <div className="flex items-center gap-3 px-2">
-                            <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center font-bold text-white text-xl shadow-lg shadow-emerald-500/20">M</div>
-                            <div className="flex flex-col text-white font-black uppercase tracking-tight leading-none">
-                                <span className="text-lg">CareSync</span>
-                                <span className="text-slate-500 text-[10px] tracking-widest mt-1">Staff Terminal</span>
+                {/* SIDEBAR */}
+                <aside className="staff-sidebar">
+                    <div className="staff-sidebar-top">
+                        <div className="staff-brand">
+                            <div className="staff-brand-icon">M</div>
+                            <div className="staff-brand-text">
+                                <span className="staff-brand-name">CareSync</span>
+                                <span className="staff-brand-sub">Staff Terminal</span>
                             </div>
                         </div>
 
-                        <nav className="space-y-1">
+                        <nav className="staff-nav">
                             {navItems.map((item) => {
                                 const isActive = location.pathname === item.path;
                                 return (
-                                    <Link key={item.name} to={item.path} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all ${isActive ? 'bg-white text-black font-bold shadow-lg shadow-white/5' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-                                        <item.icon size={20} className={isActive ? 'text-black' : 'text-slate-400'} />
-                                        <span className="text-sm">{item.name}</span>
+                                    <Link key={item.name} to={item.path} className={`staff-nav-link ${isActive ? 'staff-nav-link--active' : ''}`}>
+                                        <item.icon size={20} className={isActive ? 'staff-nav-icon--active' : 'staff-nav-icon'} />
+                                        <span className="staff-nav-label">{item.name}</span>
                                     </Link>
                                 );
                             })}
                         </nav>
                     </div>
 
-                    <div className="pt-6 border-t border-white/10 space-y-2 px-2">
-                        <Link to="/staff/settings" className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${location.pathname === '/staff/settings' ? 'bg-white text-black font-bold shadow-lg shadow-white/5' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-                            <Settings size={20} className={location.pathname === '/staff/settings' ? 'text-black' : 'text-slate-400'} />
-                            <span className="text-sm">Settings</span>
+                    <div className="staff-sidebar-bottom">
+                        <Link to="/staff/settings" className={`staff-settings-link ${location.pathname === '/staff/settings' ? 'staff-settings-link--active' : ''}`}>
+                            <Settings size={20} className={location.pathname === '/staff/settings' ? 'staff-nav-icon--active' : 'staff-nav-icon'} />
+                            <span className="staff-nav-label">Settings</span>
                         </Link>
 
-                        <div className="flex items-center justify-between pt-2">
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 bg-slate-800 rounded-full flex items-center justify-center text-[10px] text-white font-bold">JD</div>
+                        <div className="staff-user-section">
+                            <div className="staff-user-info">
+                                <div className="staff-user-avatar">JD</div>
                                 <div className="flex flex-col">
-                                    <span className="text-white text-[11px] font-bold uppercase leading-none">Juan D.</span>
-                                    <span className="text-slate-500 text-[8px] font-bold uppercase tracking-widest mt-1">Admin</span>
+                                    <span className="staff-user-name">Juan D.</span>
+                                    <span className="staff-user-role">Admin</span>
                                 </div>
                             </div>
-                            <button onClick={handleLogout} className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all" title="Logout">
+                            <button onClick={handleLogout} className="staff-logout-btn" title="Logout">
                                 <LogOut size={18} />
                             </button>
                         </div>
                     </div>
                 </aside>
 
-                <main className="flex-1 p-12 space-y-10 overflow-y-auto">
+                <main className="staff-main">
 
                     {/* HEADER */}
-                    <div className="flex justify-between items-center">
-                        <div className="space-y-1">
-                            <h1 className="text-5xl font-black text-slate-950 uppercase tracking-tighter">Payments</h1>
-                            <p className="text-slate-500 font-medium uppercase text-[10px] tracking-[0.2em]">Transaction history & settlement</p>
+                    <div className="staff-header">
+                        <div className="staff-header-info">
+                            <h1 className="staff-page-title">Payments</h1>
+                            <p className="staff-page-subtitle">Transaction history & settlement</p>
                         </div>
                         <div className="flex gap-3">
                             <div className="relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                <input type="text" placeholder="Ref No. or Patient..." className="pl-12 pr-6 py-4 bg-white border-2 border-slate-50 rounded-2xl focus:border-black outline-none w-64 text-sm font-bold shadow-sm transition-all" />
+                                <Search className="staff-search-icon-sm" size={18} />
+                                <input type="text" placeholder="Ref No. or Patient..." className="staff-search-input-sm" />
                             </div>
-                            <button className="px-6 py-4 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-slate-800 transition-all shadow-lg">
+                            <button className="staff-btn-primary">
                                 <Download size={16} /> Export CSV
                             </button>
                         </div>
                     </div>
 
                     {/* RECENT TRANSACTIONS TABLE */}
-                    <div className="bg-white border-2 border-slate-50 rounded-[2.5rem] shadow-sm overflow-hidden">
-                        <table className="w-full text-left">
+                    <div className="staff-table-wrapper">
+                        <table className="staff-table">
                             <thead>
-                                <tr className="border-b border-slate-50">
-                                    <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Transaction / Ref</th>
-                                    <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Patient</th>
-                                    <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Method</th>
-                                    <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Amount</th>
-                                    <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Status</th>
-                                    <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Action</th>
+                                <tr className="staff-table-head-row">
+                                    <th className="staff-th-sm">Transaction / Ref</th>
+                                    <th className="staff-th-sm">Patient</th>
+                                    <th className="staff-th-sm">Method</th>
+                                    <th className="staff-th-sm">Amount</th>
+                                    <th className="staff-th-sm">Status</th>
+                                    <th className="staff-th-sm text-right">Action</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody className="staff-table-body">
                                 {transactions.map((txn) => (
-                                    <tr key={txn.id} className="group hover:bg-slate-50/50 transition-colors">
-                                        <td className="px-8 py-6">
-                                            <p className="font-black text-sm text-slate-950 uppercase">{txn.id}</p>
-                                            <p className="text-[10px] font-bold text-slate-400 tracking-tighter uppercase">{txn.ref}</p>
+                                    <tr key={txn.id} className="staff-table-row">
+                                        <td className="staff-td-sm">
+                                            <p className="payment-txn-id">{txn.id}</p>
+                                            <p className="payment-txn-ref">{txn.ref}</p>
                                         </td>
-                                        <td className="px-8 py-6">
-                                            <p className="font-bold text-sm text-slate-950">{txn.patient}</p>
-                                            <p className="text-[10px] font-medium text-slate-400">{txn.date}</p>
+                                        <td className="staff-td-sm">
+                                            <p className="payment-patient-name">{txn.patient}</p>
+                                            <p className="payment-patient-date">{txn.date}</p>
                                         </td>
-                                        <td className="px-8 py-6">
-                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${txn.method === 'GCash' ? 'bg-blue-50 text-blue-600' :
+                                        <td className="staff-td-sm">
+                                            <span className={`payment-method-badge ${txn.method === 'GCash' ? 'bg-blue-50 text-blue-600' :
                                                 txn.method === 'Maya' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600'
                                                 }`}>
                                                 {txn.method}
                                             </span>
                                         </td>
-                                        <td className="px-8 py-6 font-black text-slate-950">{txn.amount}</td>
-                                        <td className="px-8 py-6">
+                                        <td className="staff-td-sm payment-amount">{txn.amount}</td>
+                                        <td className="staff-td-sm">
                                             <div className="flex items-center gap-2">
                                                 {txn.status === 'Success' ? (
                                                     <CheckCircle2 size={16} className="text-emerald-500" />
                                                 ) : (
                                                     <Clock size={16} className="text-orange-400" />
                                                 )}
-                                                <span className={`text-[10px] font-black uppercase tracking-widest ${txn.status === 'Success' ? 'text-emerald-500' : 'text-orange-400'}`}>
+                                                <span className={`staff-status-badge ${txn.status === 'Success' ? 'text-emerald-500' : 'text-orange-400'}`}>
                                                     {txn.status}
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-6 text-right">
-                                            <button className="p-3 bg-slate-50 rounded-xl text-slate-400 hover:text-black hover:bg-white border border-transparent hover:border-slate-100 transition-all shadow-sm">
+                                        <td className="staff-td-sm text-right">
+                                            <button className="payment-action-btn">
                                                 <ExternalLink size={16} />
                                             </button>
                                         </td>
@@ -156,26 +158,26 @@ export default function PaymentRecords() {
                     </div>
 
                     {/* SUMMARY CARDS */}
-                    <div className="grid grid-cols-3 gap-8">
-                        <div className="bg-emerald-500 p-10 rounded-[2.5rem] text-white space-y-4 shadow-xl shadow-emerald-500/20">
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Total Daily Revenue</p>
-                            <h3 className="text-4xl font-black italic">₱12,450.00</h3>
-                            <div className="pt-4 border-t border-white/10 text-[10px] font-bold uppercase tracking-widest flex justify-between">
+                    <div className="payment-revenue-grid">
+                        <div className="payment-revenue-primary">
+                            <p className="payment-revenue-label">Total Daily Revenue</p>
+                            <h3 className="payment-revenue-value">₱12,450.00</h3>
+                            <div className="payment-revenue-footer">
                                 <span>24 Successful TXNs</span>
                                 <span className="text-emerald-200">+15% vs Yesterday</span>
                             </div>
                         </div>
-                        <div className="bg-white border-2 border-slate-50 p-10 rounded-[2.5rem] space-y-4">
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">GCash Volume</p>
-                            <h3 className="text-4xl font-black text-slate-950 italic">₱8,200</h3>
-                            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div className="payment-volume-card">
+                            <p className="payment-volume-label">GCash Volume</p>
+                            <h3 className="payment-volume-value">₱8,200</h3>
+                            <div className="payment-volume-bar">
                                 <div className="bg-blue-500 h-full w-[65%]" />
                             </div>
                         </div>
-                        <div className="bg-white border-2 border-slate-50 p-10 rounded-[2.5rem] space-y-4">
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Maya Volume</p>
-                            <h3 className="text-4xl font-black text-slate-950 italic">₱4,250</h3>
-                            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div className="payment-volume-card">
+                            <p className="payment-volume-label">Maya Volume</p>
+                            <h3 className="payment-volume-value">₱4,250</h3>
+                            <div className="payment-volume-bar">
                                 <div className="bg-emerald-400 h-full w-[35%]" />
                             </div>
                         </div>

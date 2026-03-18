@@ -1,0 +1,70 @@
+@reference "tailwindcss/theme";
+
+/* ============================================
+   PAYMENT RECORDS — Specific Styles
+   ============================================ */
+
+.payment-txn-id {
+    @apply font-black text-sm text-slate-950 uppercase;
+}
+
+.payment-txn-ref {
+    @apply text-[10px] font-bold text-slate-400 tracking-tighter uppercase;
+}
+
+.payment-patient-name {
+    @apply font-bold text-sm text-slate-950;
+}
+
+.payment-patient-date {
+    @apply text-[10px] font-medium text-slate-400;
+}
+
+.payment-method-badge {
+    @apply px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest;
+}
+
+.payment-amount {
+    @apply font-black text-slate-950;
+}
+
+.payment-action-btn {
+    @apply p-3 bg-slate-50 rounded-xl text-slate-400 hover:text-black hover:bg-white border border-transparent hover:border-slate-100 transition-all shadow-sm;
+}
+
+/* ---- Revenue Cards ---- */
+.payment-revenue-grid {
+    @apply grid grid-cols-3 gap-8;
+}
+
+.payment-revenue-primary {
+    @apply bg-emerald-500 p-10 rounded-[2.5rem] text-white space-y-4 shadow-xl shadow-emerald-500/20;
+}
+
+.payment-revenue-label {
+    @apply text-[10px] font-black uppercase tracking-[0.2em] opacity-60;
+}
+
+.payment-revenue-value {
+    @apply text-4xl font-black italic;
+}
+
+.payment-revenue-footer {
+    @apply pt-4 border-t border-white/10 text-[10px] font-bold uppercase tracking-widest flex justify-between;
+}
+
+.payment-volume-card {
+    @apply bg-white border-2 border-slate-50 p-10 rounded-[2.5rem] space-y-4;
+}
+
+.payment-volume-label {
+    @apply text-[10px] font-black uppercase tracking-[0.2em] text-slate-400;
+}
+
+.payment-volume-value {
+    @apply text-4xl font-black text-slate-950 italic;
+}
+
+.payment-volume-bar {
+    @apply w-full bg-slate-100 h-2 rounded-full overflow-hidden;
+}
