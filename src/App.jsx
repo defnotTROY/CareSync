@@ -29,9 +29,16 @@ import NewClient from "./pages/staff/NewClient.jsx";
 
 // Doctor Pages
 import DoctorDashboard from "./pages/doctor/DoctorDashboard.jsx";
-import DoctorQueue from "./pages/doctor/DoctorQueue.jsx"; // Added Doctor Queue Import
+import DoctorQueue from "./pages/doctor/DoctorQueue.jsx";
 import Consultation from "./pages/doctor/Consultation.jsx";
 import DoctorRecords from "./pages/doctor/DoctorRecords.jsx";
+
+// Admin Pages
+import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
+import StaffManagement from "./pages/admin/StaffManagement.jsx";
+import RevenueTracker from "./pages/admin/RevenueTracker.jsx";
+import Inventory from "./pages/admin/Inventory.jsx";
+import Maintenance from "./pages/admin/Maintenance.jsx";
 
 function LandingPage() {
   return (
@@ -75,9 +82,16 @@ function AnimatedRoutes() {
 
         {/* Doctor Terminal Routes */}
         <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
-        <Route path="/doctor/queue" element={<DoctorQueue />} /> {/* Added Doctor Queue Route */}
+        <Route path="/doctor/queue" element={<DoctorQueue />} />
         <Route path="/doctor/consultation" element={<Consultation />} />
         <Route path="/doctor/records" element={<DoctorRecords />} />
+
+        {/* Admin Terminal Routes */}
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/staff" element={<StaffManagement />} />
+        <Route path="/admin/revenue" element={<RevenueTracker />} />
+        <Route path="/admin/inventory" element={<Inventory />} />
+        <Route path="/admin/maintenance" element={<Maintenance />} />
       </Routes>
     </AnimatePresence>
   );

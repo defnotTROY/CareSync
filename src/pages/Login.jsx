@@ -1,11 +1,33 @@
-import { useState } from 'react'; // 1. Import useState
-import { Eye, EyeOff, ShieldCheck } from 'lucide-react'; // 2. Import EyeOff
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom'; // Added useNavigate
 import PageTransition from "../components/layout/PageTransition.jsx";
 
 export default function Login() {
-    // 3. Create the visibility state
+    const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
+
+    // 1. Add states for input
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+
+    // 2. Handle the Role-Based Redirect
+    const handleLogin = (e) => {
+        e.preventDefault();
+
+        const lowerEmail = email.toLowerCase();
+
+        if (lowerEmail.includes('admin')) {
+            navigate('/admin/dashboard');
+        } else if (lowerEmail.includes('doctor')) {
+            navigate('/doctor/dashboard');
+        } else if (lowerEmail.includes('staff')) {
+            navigate('/staff/dashboard');
+        } else {
+            // Default role is Client/Patient
+            navigate('/dashboard');
+        }
+    };
 
     return (
         <PageTransition>
@@ -18,25 +40,25 @@ export default function Login() {
                         <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
                             <span className="text-black font-bold">M</span>
                         </div>
-                        <span className="text-white font-bold text-xl tracking-tight uppercase">MJY 88</span>
+                        <span className="text-white font-bold text-xl tracking-tight uppercase">CareSync</span>
                     </Link>
 
                     <div className="relative z-10 space-y-6">
                         <h1 className="text-5xl font-black text-white leading-tight uppercase">
                             Faster licensing <br /> starts with better <br /> access.
                         </h1>
-                        <p className="text-slate-400 max-w-md leading-relaxed">
+                        <p className="text-slate-400 max-w-md leading-relaxed font-medium">
                             Manage your LTO medical requirements, schedule your physical exam,
                             and track your certification status in real-time.
                         </p>
                         <div className="flex gap-12 pt-8 border-t border-white/10">
                             <div>
-                                <p className="text-2xl font-bold text-white">24/7</p>
-                                <p className="text-xs uppercase tracking-widest text-slate-500 font-bold">Support</p>
+                                <p className="text-2xl font-bold text-white tracking-tighter">24/7</p>
+                                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black">Support</p>
                             </div>
                             <div>
-                                <p className="text-2xl font-bold text-white">100%</p>
-                                <p className="text-xs uppercase tracking-widest text-slate-500 font-bold">Secure</p>
+                                <p className="text-2xl font-bold text-white tracking-tighter">100%</p>
+                                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black">Secure</p>
                             </div>
                         </div>
                     </div>
@@ -46,35 +68,39 @@ export default function Login() {
                 <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
                     <div className="w-full max-w-md space-y-10">
                         <div className="space-y-2">
-                            <h2 className="text-3xl font-black tracking-tight uppercase">Welcome Back</h2>
-                            <p className="text-slate-500 text-sm font-medium">Please enter your details to access your portal</p>
+                            <h2 className="text-4xl font-black tracking-tight uppercase italic">Welcome Back</h2>
+                            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Please enter your credentials</p>
                         </div>
 
-                        <form className="space-y-6">
+                        <form onSubmit={handleLogin} className="space-y-6">
                             <div className="space-y-2">
-                                <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Email Address</label>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Address</label>
                                 <input
+                                    required
                                     type="email"
-                                    placeholder="name@example.com"
-                                    className="w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-xl focus:border-black focus:outline-none transition-all placeholder:text-slate-300"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="e.g. admin@caresync.com"
+                                    className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-black focus:bg-white focus:outline-none transition-all font-bold text-sm"
                                 />
                             </div>
 
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center">
-                                    <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Password</label>
-                                    <a href="#" className="text-xs font-bold hover:underline">Forgot password?</a>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Password</label>
+                                    <a href="#" className="text-[10px] font-black uppercase tracking-widest hover:underline">Forgot?</a>
                                 </div>
                                 <div className="relative">
                                     <input
-                                        /* 4. Dynamic type based on state */
+                                        required
                                         type={showPassword ? "text" : "password"}
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
                                         placeholder="••••••••"
-                                        className="w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-xl focus:border-black focus:outline-none transition-all placeholder:text-slate-300"
+                                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-black focus:bg-white focus:outline-none transition-all font-bold text-sm"
                                     />
-                                    {/* 5. Clickable toggle icon */}
                                     <div
-                                        className="absolute right-4 top-3.5 text-slate-300 cursor-pointer hover:text-black transition-colors"
+                                        className="absolute right-5 top-4 text-slate-300 cursor-pointer hover:text-black transition-colors"
                                         onClick={() => setShowPassword(!showPassword)}
                                     >
                                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -82,33 +108,27 @@ export default function Login() {
                                 </div>
                             </div>
 
-                            <button className="w-full py-4 bg-black text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 uppercase tracking-widest">
-                                Log In
+                            <button type="submit" className="w-full py-5 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200">
+                                Enter Terminal
                             </button>
                         </form>
 
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-100"></span></div>
-                            <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-4 text-slate-400 font-bold tracking-widest">Or continue with</span></div>
+                            <div className="relative flex justify-center text-[10px] uppercase font-black tracking-[0.3em]"><span className="bg-white px-4 text-slate-300">Identity Provider</span></div>
                         </div>
 
-                        <button className="w-full py-3 border-2 border-slate-100 rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-slate-50 transition-all">
-                            <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5 grayscale" alt="google" />
-                            GOOGLE
+                        <button className="w-full py-4 border-2 border-slate-100 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-slate-50 transition-all uppercase">
+                            <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-4 h-4 grayscale opacity-50" alt="google" />
+                            Continue with Google
                         </button>
 
-                        <p className="text-center text-sm text-slate-500 mt-8">
-                            Don't have an account? {' '}
-                            <Link to="/signup" className="text-black font-bold hover:underline">
+                        <p className="text-center text-xs text-slate-400 font-bold uppercase tracking-widest">
+                            New user? {' '}
+                            <Link to="/signup" className="text-black font-black hover:underline">
                                 Create Account
                             </Link>
                         </p>
-
-                        <div className="flex justify-center gap-6 text-[10px] uppercase tracking-widest font-bold text-slate-300 pt-8">
-                            <a href="#" className="hover:text-black">Privacy Policy</a>
-                            <a href="#" className="hover:text-black">Terms of Service</a>
-                            <a href="#" className="hover:text-black">Contact Support</a>
-                        </div>
                     </div>
                 </div>
             </div>
