@@ -14,27 +14,47 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
     // Get initial session
     const fetchSessionAndRole = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user || null);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
 
-      if (session?.user) {
-        await fetchRole(session.user.id);
-      } else {
-        setLoading(false);
+        if (mounted) {
+          setSession(session);
+          setUser(session?.user || null);
+
+          if (session?.user) {
+            await fetchRole(session.user.id);
+          } else {
+            setLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error("Error in initial session fetch:", error);
+        if (mounted) setLoading(false);
       }
     };
 
     fetchSessionAndRole();
 
-    // Listen for auth changes (login, logout, token refresh)
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
       setSession(session);
       setUser(session?.user || null);
       
       if (session?.user) {
+        // Only fetch role if we don't have it or if it's a sign-in event
+        // This avoids redundant calls if fetchSessionAndRole already did it
         await fetchRole(session.user.id);
       } else {
         setRole(null);
@@ -43,11 +63,13 @@ export const AuthProvider = ({ children }) => {
     });
 
     return () => {
+      mounted = false;
       subscription?.unsubscribe();
     };
   }, []);
 
   const fetchRole = async (userId) => {
+    if (!supabase) return;
     try {
       const { data, error } = await supabase
         .from('profiles')
