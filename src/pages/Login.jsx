@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Eye, EyeOff, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import PageTransition from "../components/layout/PageTransition.jsx";
-import { supabase } from '../supabaseClient'; // Adjusted to match the file we created
+import { supabase } from '../supabaseClient';
 import '../styles/client-portal.css';
 import './Login.css';
 
@@ -19,50 +19,52 @@ export default function Login() {
         setError('');
         setIsLoading(true);
 
-        // 1. Authenticate with Supabase Auth
-        const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password
-        });
+        try {
+            // 1. Authenticate with Supabase Auth
+            const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
 
-        if (signInError) {
-            setError(signInError.message === "Invalid login credentials"
-                ? "Invalid email or password. Please try again."
-                : signInError.message);
-            setIsLoading(false);
-            return;
-        }
+            if (signInError) {
+                setError(signInError.message === "Invalid login credentials"
+                    ? "Invalid email or password. Please try again."
+                    : signInError.message);
+                setIsLoading(false);
+                return;
+            }
 
-        // 2. Fetch the user's role from the 'profiles' table
-        const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', authData.user.id)
-            .single();
+            // 2. Fetch the user's role from the 'profiles' table
+            const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', authData.user.id)
+                .single();
 
-        setIsLoading(false);
+            if (profileError || !profileData) {
+                console.error("Profile fetch error:", profileError);
+                navigate('/dashboard'); // Fallback for standard clients if profile missing
+                return;
+            }
 
-        // 3. Role-Based Redirection
-        if (profileError || !profileData) {
-            console.error("Profile fetch error:", profileError);
-            navigate('/dashboard'); // Default fallback for standard clients
-            return;
-        }
+            // 3. Precise Role-Based Redirection
+            const role = profileData.role?.toLowerCase(); // Normalize casing
 
-        const role = profileData.role;
-        switch (role) {
-            case 'admin':
+            if (role === 'admin') {
                 navigate('/admin/dashboard');
-                break;
-            case 'doctor':
-                navigate('/doctor/dashboard');
-                break;
-            case 'staff':
+            } else if (role === 'staff') {
                 navigate('/staff/dashboard');
-                break;
-            default:
+            } else if (role === 'doctor') {
+                navigate('/doctor/dashboard');
+            } else {
                 navigate('/dashboard'); // Standard client path
-                break;
+            }
+
+        } catch (err) {
+            console.error("Unexpected login error:", err);
+            setError("An unexpected error occurred. Please try again.");
+        } finally {
+            setIsLoading(false);
         }
     };
 

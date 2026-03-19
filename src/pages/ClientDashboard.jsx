@@ -109,12 +109,12 @@ export default function ClientDashboard() {
                 <aside className="client-sidebar">
                     <div className="space-y-10">
                         <Link to="/" className="flex items-center gap-3 px-2 group">
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg bg-white overflow-hidden shrink-0">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden shrink-0">
                                 <img src="/mjylogo.png" alt="M" className="w-full h-full object-cover" />
                             </div>
                             <div className="flex flex-col text-white font-black uppercase tracking-tight leading-none">
                                 <span className="text-lg tracking-tighter">CareSync</span>
-                                <span className="text-slate-500 text-[9px] mt-1 font-black">Client Portal</span>
+                                <span className="text-slate-500 text-[9px] tracking-[0.2em] mt-1 font-black">Client Portal</span>
                             </div>
                         </Link>
 

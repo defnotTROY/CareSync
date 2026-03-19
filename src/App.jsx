@@ -45,15 +45,24 @@ const RevenueTracker = lazy(() => import("./pages/admin/RevenueTracker.jsx"));
 const Inventory = lazy(() => import("./pages/admin/Inventory.jsx"));
 const Maintenance = lazy(() => import("./pages/admin/Maintenance.jsx"));
 
-// Shared loading fallback
+// --- UPDATED LOADER ---
 function PageLoader() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC]">
+      <div className="w-16 h-16 mb-4 relative">
+        {/* Static Background Circle */}
+        <div className="absolute inset-0 border-4 border-slate-100 rounded-full"></div>
+        {/* Animated Spinning Top Border */}
+        <div className="absolute inset-0 border-4 border-black rounded-full border-t-transparent animate-spin"></div>
+      </div>
+      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
+        CareSync Terminals
+      </p>
     </div>
   );
 }
 
+// --- KEEP YOUR LANDING PAGE BELOW IT ---
 function LandingPage() {
   return (
     <>

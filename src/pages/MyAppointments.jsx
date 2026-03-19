@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, CalendarPlus, ClipboardList, Settings,
-    LogOut, ShieldCheck, User, Search, Bell, Plus, Loader2, Calendar, X, Info
+    LogOut, User, Search, Bell, Plus, Loader2, Calendar, X, Info
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import PageTransition from "../components/layout/PageTransition.jsx";
@@ -20,10 +20,9 @@ export default function MyAppointments() {
     const [loadingAppointments, setLoadingAppointments] = useState(true);
     const [activeTab, setActiveTab] = useState('Upcoming Visits');
     const [searchQuery, setSearchQuery] = useState('');
-
-    // UI States for Actions
-    const [selectedApt, setSelectedApt] = useState(null); // State for View Details Modal
-    const [isActionLoading, setIsActionLoading] = useState(false);
+    const [selectedApt, setSelectedApt] = useState(null);
+    const [actioningId, setActioningId] = useState(null);
+    const [cancelModalApt, setCancelModalApt] = useState(null);
 
     // --- FETCH DATA ---
     const fetchData = async () => {
@@ -34,7 +33,6 @@ export default function MyAppointments() {
                 return;
             }
 
-            // 1. Fetch Profile
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('full_name')
@@ -43,7 +41,6 @@ export default function MyAppointments() {
             if (profile) setUserName(profile.full_name);
             setIsUserLoading(false);
 
-            // 2. Fetch Appointments
             const { data: aptData, error: aptError } = await supabase
                 .from('appointments')
                 .select('*')
@@ -70,52 +67,43 @@ export default function MyAppointments() {
 
     // --- ACTION LOGIC ---
     const handleCancelVisit = async (id) => {
-        const confirmCancel = window.confirm("Are you sure you want to cancel this appointment?");
-        if (!confirmCancel) return;
-
-        setIsActionLoading(true);
+        setActioningId(id);
+        setCancelModalApt(null);
         try {
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('appointments')
                 .update({ status: 'CANCELLED' })
-                .eq('id', id)
-                .select(); // .select() ensures the policy allows the update and returns data
+                .eq('id', id);
 
             if (error) throw error;
 
-            if (data && data.length > 0) {
-                // Manually update local state for instant UI feedback
-                setAppointments(prev =>
-                    prev.map(apt => apt.id === id ? { ...apt, status: 'CANCELLED' } : apt)
-                );
-                alert("Appointment cancelled successfully.");
-            } else {
-                alert("Update failed. Please check your database Row Level Security (RLS) policies.");
-            }
+            setAppointments(prev =>
+                prev.map(apt => apt.id === id ? { ...apt, status: 'CANCELLED' } : apt)
+            );
         } catch (err) {
-            alert("Error cancelling appointment: " + err.message);
+            console.error("Error cancelling appointment:", err.message);
         } finally {
-            setIsActionLoading(false);
+            setActioningId(null);
         }
     };
 
     const handleReschedule = (apt) => {
-        // Redirect to booking page and pass the appointment data via state
         navigate('/book', { state: { rescheduleData: apt } });
     };
 
     // --- FILTERING LOGIC ---
     const filteredAppointments = appointments.filter(apt => {
         const matchesSearch = apt.purpose.toLowerCase().includes(searchQuery.toLowerCase());
+        const status = apt.status?.toUpperCase() || '';
 
         if (activeTab === 'Upcoming Visits') {
-            return matchesSearch && (apt.status === 'CONFIRMED' || apt.status === 'PENDING');
+            return matchesSearch && (status === 'CONFIRMED' || status === 'PENDING');
         }
         if (activeTab === 'Past History') {
-            return matchesSearch && apt.status === 'COMPLETED';
+            return matchesSearch && status === 'COMPLETED';
         }
         if (activeTab === 'Cancelled') {
-            return matchesSearch && apt.status === 'CANCELLED';
+            return matchesSearch && status === 'CANCELLED';
         }
         return matchesSearch;
     });
@@ -140,7 +128,7 @@ export default function MyAppointments() {
                 <aside className="client-sidebar">
                     <div className="space-y-10">
                         <Link to="/" className="flex items-center gap-3 px-2 group">
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 overflow-hidden shrink-0 bg-white">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden shrink-0">
                                 <img src="/mjylogo.png" alt="M" className="w-full h-full object-cover" />
                             </div>
                             <div className="flex flex-col text-white font-black uppercase tracking-tight leading-none">
@@ -172,7 +160,7 @@ export default function MyAppointments() {
                                 </div>
                                 <div className="flex flex-col overflow-hidden">
                                     <span className="sidebar-user-name text-white truncate w-24">{isUserLoading ? "..." : userName}</span>
-                                    <span className="sidebar-user-role text-slate-500 text-[10px]">Patient Account</span>
+                                    <span className="sidebar-user-role text-slate-500 text-[10px]">Client Account</span>
                                 </div>
                             </div>
                             <button onClick={handleLogout} className="sidebar-logout-btn bg-transparent border-none text-slate-400 hover:text-red-400 cursor-pointer p-1 transition-colors">
@@ -184,7 +172,6 @@ export default function MyAppointments() {
 
                 {/* MAIN CONTENT AREA */}
                 <main className="flex-1 bg-white relative">
-                    {/* Top Bar with Search */}
                     <div className="top-bar p-6 border-b border-slate-100 flex justify-between items-center">
                         <h2 className="top-bar-title font-bold text-slate-800">My Appointments</h2>
                         <div className="flex items-center gap-4">
@@ -215,7 +202,6 @@ export default function MyAppointments() {
                             </Link>
                         </div>
 
-                        {/* Tabs Navigation */}
                         <div className="tab-container flex gap-8 border-b border-slate-100 mb-8">
                             {tabs.map((tab) => (
                                 <button
@@ -229,7 +215,6 @@ export default function MyAppointments() {
                             ))}
                         </div>
 
-                        {/* Appointments List */}
                         <div className="space-y-6">
                             {loadingAppointments ? (
                                 <div className="flex flex-col items-center justify-center py-20 text-slate-400">
@@ -277,11 +262,11 @@ export default function MyAppointments() {
                                             </div>
                                             {(apt.status === 'CONFIRMED' || apt.status === 'PENDING') && (
                                                 <button
-                                                    disabled={isActionLoading}
-                                                    onClick={() => handleCancelVisit(apt.id)}
-                                                    className="cancel-link text-xs text-red-400 font-medium hover:text-red-600 transition-colors disabled:opacity-50"
+                                                    disabled={actioningId === apt.id}
+                                                    onClick={() => setCancelModalApt(apt)}
+                                                    className="cancel-link text-xs text-red-400 font-medium hover:text-red-600 transition-colors disabled:opacity-50 cursor-pointer"
                                                 >
-                                                    Cancel Visit
+                                                    {actioningId === apt.id ? "Processing..." : "Cancel Visit"}
                                                 </button>
                                             )}
                                         </div>
@@ -300,7 +285,7 @@ export default function MyAppointments() {
                         </div>
                     </div>
 
-                    {/* VIEW DETAILS MODAL */}
+                    {/* APPOINTMENT DETAILS MODAL */}
                     {selectedApt && (
                         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
                             <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
@@ -317,8 +302,7 @@ export default function MyAppointments() {
                                         <div>
                                             <p className="text-slate-400 mb-1">Status</p>
                                             <p className={`font-bold uppercase tracking-wider ${selectedApt.status === 'CONFIRMED' ? 'text-emerald-600' :
-                                                selectedApt.status === 'PENDING' ? 'text-amber-600' :
-                                                    selectedApt.status === 'CANCELLED' ? 'text-red-500' : 'text-slate-900'
+                                                selectedApt.status === 'PENDING' ? 'text-amber-600' : 'text-red-500'
                                                 }`}>
                                                 {selectedApt.status}
                                             </p>
@@ -335,28 +319,46 @@ export default function MyAppointments() {
                                             <p className="text-slate-400 mb-1">Time</p>
                                             <p className="font-bold text-slate-800">{selectedApt.appointment_time}</p>
                                         </div>
-                                        <div>
-                                            <p className="text-slate-400 mb-1">Payment Method</p>
-                                            <p className="font-bold text-slate-800 uppercase">{selectedApt.payment_method}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-slate-400 mb-1">Fee</p>
-                                            <p className="font-bold text-slate-800">₱{selectedApt.amount}.00</p>
-                                        </div>
                                     </div>
-                                    <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl">
-                                        <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                                            Please arrive 15 minutes before your scheduled time. Present your digital receipt at the counter.
-                                        </p>
+                                    <div className="p-6 bg-slate-50 text-right">
+                                        <button
+                                            onClick={() => setSelectedApt(null)}
+                                            className="bg-black text-white px-8 py-2.5 rounded-xl font-bold hover:bg-slate-800 transition-colors"
+                                        >
+                                            Close
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="p-6 bg-slate-50 text-right">
-                                    <button
-                                        onClick={() => setSelectedApt(null)}
-                                        className="bg-black text-white px-8 py-2.5 rounded-xl font-bold hover:bg-slate-800 transition-colors"
-                                    >
-                                        Close
-                                    </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* CANCEL CONFIRMATION MODAL */}
+                    {cancelModalApt && (
+                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                            <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                                <div className="p-8 text-center space-y-6">
+                                    <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <X size={32} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-slate-900 mb-2">Cancel Appointment?</h3>
+                                        <p className="text-slate-500 text-sm">Are you sure you want to cancel your visit for <span className="font-bold text-slate-800">{cancelModalApt.purpose}</span> on <span className="font-bold text-slate-800">{formatDate(cancelModalApt.appointment_date)}</span>?</p>
+                                    </div>
+                                    <div className="flex gap-3 pt-4">
+                                        <button
+                                            onClick={() => setCancelModalApt(null)}
+                                            className="flex-1 py-3 border-2 border-slate-100 text-slate-600 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-colors"
+                                        >
+                                            Keep It
+                                        </button>
+                                        <button
+                                            onClick={() => handleCancelVisit(cancelModalApt.id)}
+                                            className="flex-1 py-3 bg-red-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-600 transition-colors shadow-lg shadow-red-500/30"
+                                        >
+                                            Yes, Cancel
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

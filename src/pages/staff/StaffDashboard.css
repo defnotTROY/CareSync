@@ -67,3 +67,98 @@
 .dashboard-stat-change {
     @apply text-[10px] font-bold pb-1;
 }
+
+/* ============================================
+    NOTIFICATION SYSTEM
+   ============================================ */
+
+/* ---- Notification Dropdown Container ---- */
+.notification-dropdown {
+    @apply absolute right-0 mt-3 w-80 bg-white border border-slate-200 shadow-2xl rounded-[2rem] z-50 overflow-hidden;
+    /* Manual animation for Tailwind v4 compatibility */
+    animation: dropdown-pop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes dropdown-pop {
+    from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.notification-header {
+    @apply p-5 border-b border-slate-50 flex justify-between items-center bg-slate-50/50;
+}
+
+.notification-badge {
+    @apply bg-black text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full;
+}
+
+/* ---- Individual Notification Item ---- */
+.notification-item {
+    @apply p-5 border-b border-slate-50 hover:bg-slate-50 transition-all cursor-default;
+}
+
+.notification-user-name {
+    @apply text-xs font-black text-slate-950 uppercase tracking-tight;
+}
+
+.notification-purpose {
+    @apply text-[11px] text-slate-500 font-medium;
+}
+
+/* ---- Action Buttons inside Notif ---- */
+.notif-btn-confirm {
+    @apply flex-1 bg-black text-white text-[10px] font-black uppercase tracking-widest py-3 rounded-xl hover:bg-slate-800 transition-transform active:scale-95;
+}
+
+.notif-btn-view {
+    @apply flex-1 bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest py-3 rounded-xl hover:bg-slate-200 transition-colors;
+}
+
+/* ---- The Animated Red Dot ---- */
+.staff-bell-dot {
+    @apply absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white;
+    animation: bell-pulse 2s infinite;
+}
+
+@keyframes bell-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.6;
+        transform: scale(0.9);
+    }
+}
+
+/* ---- Custom Scrollbar for Notifications ---- */
+.notification-scroll {
+    @apply max-h-[400px] overflow-y-auto;
+}
+
+.notification-scroll::-webkit-scrollbar {
+    @apply w-1;
+}
+
+.notification-scroll::-webkit-scrollbar-track {
+    @apply bg-transparent;
+}
+
+.notification-scroll::-webkit-scrollbar-thumb {
+    @apply bg-slate-100 rounded-full hover:bg-slate-200;
+}
+
+/* ---- Empty State ---- */
+.notif-empty-icon {
+    @apply w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-3 text-slate-200;
+}

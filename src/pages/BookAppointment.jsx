@@ -187,7 +187,7 @@ export default function BookAppointment() {
                 <aside className="client-sidebar">
                     <div className="space-y-10">
                         <Link to="/" className="flex items-center gap-3 px-2 group">
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg bg-white shrink-0">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shrink-0">
                                 <img src="/mjylogo.png" alt="M" className="w-full h-full object-cover" />
                             </div>
                             <div className="flex flex-col text-white font-black uppercase tracking-tight leading-none">
@@ -213,7 +213,7 @@ export default function BookAppointment() {
                                 </div>
                                 <div className="flex flex-col overflow-hidden">
                                     <span className="sidebar-user-name text-white truncate w-24">{isUserLoading ? "..." : userName}</span>
-                                    <span className="sidebar-user-role text-slate-500 text-[10px]">Patient Account</span>
+                                    <span className="sidebar-user-role text-slate-500 text-[10px]">Client Account</span>
                                 </div>
                             </div>
                             <button onClick={handleLogout} className="sidebar-logout-btn bg-transparent border-none text-slate-400 hover:text-red-400 cursor-pointer p-1">
