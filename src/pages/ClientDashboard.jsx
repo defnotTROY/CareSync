@@ -39,13 +39,20 @@ export default function ClientDashboard() {
                 {/* SIDE NAVIGATION BAR */}
                 <aside className="client-sidebar">
                     <div className="space-y-10">
-                        <Link to="/" className="sidebar-brand">
-                            <div className="sidebar-brand-icon">
-                                <ShieldCheck className="text-white" size={22} />
+                        <Link to="/" className="flex items-center gap-3 px-2 group">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 overflow-hidden shrink-0">
+                                <img
+                                    src="/mjylogo.png"
+                                    alt="M"
+                                    className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                                />
                             </div>
-                            <div className="flex flex-col">
-                                <span className="sidebar-brand-name">MJY 88</span>
-                                <span className="sidebar-brand-sub">Medical Clinic</span>
+
+                            <div className="flex flex-col text-white font-black uppercase tracking-tight leading-none">
+                                <span className="text-lg tracking-tighter">CareSync</span>
+                                <span className="text-slate-500 text-[9px] tracking-[0.2em] mt-1 font-black">
+                                    Client Portal
+                                </span>
                             </div>
                         </Link>
 
@@ -82,9 +89,9 @@ export default function ClientDashboard() {
                                     <span className="sidebar-user-role">Patient Account</span>
                                 </div>
                             </div>
-                            <button className="sidebar-logout-btn">
+                            <Link to="/login" className="sidebar-logout-btn inline-flex items-center justify-center transition-all hover:text-red-400">
                                 <LogOut size={18} />
-                            </button>
+                            </Link>
                         </div>
                     </div>
                 </aside>

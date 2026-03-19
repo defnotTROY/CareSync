@@ -85,17 +85,60 @@ export default function BookAppointment() {
                 {/* SIDEBAR */}
                 <aside className="client-sidebar">
                     <div className="space-y-10">
-                        <Link to="/" className="sidebar-brand">
-                            <div className="sidebar-brand-icon"><ShieldCheck className="text-white" size={22} /></div>
-                            <span className="sidebar-brand-name">MJY 88</span>
+                        <Link to="/" className="flex items-center gap-3 px-2 group">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 overflow-hidden shrink-0">
+                                <img
+                                    src="/mjylogo.png"
+                                    alt="M"
+                                    className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                                />
+                            </div>
+
+                            <div className="flex flex-col text-white font-black uppercase tracking-tight leading-none">
+                                <span className="text-lg tracking-tighter">CareSync</span>
+                                <span className="text-slate-500 text-[9px] tracking-[0.2em] mt-1 font-black">
+                                    Client Portal
+                                </span>
+                            </div>
                         </Link>
+
                         <nav className="sidebar-nav">
-                            {navItems.map((item) => (
-                                <Link key={item.name} to={item.path} className={`sidebar-nav-link ${location.pathname === item.path ? 'sidebar-nav-link--active' : ''}`}>
-                                    <item.icon size={20} /> <span className="sidebar-nav-label">{item.name}</span>
-                                </Link>
-                            ))}
+                            {navItems.map((item) => {
+                                const isActive = location.pathname === item.path;
+                                return (
+                                    <Link
+                                        key={item.name}
+                                        to={item.path}
+                                        className={`sidebar-nav-link ${isActive ? 'sidebar-nav-link--active' : ''}`}
+                                    >
+                                        <item.icon size={20} className={isActive ? 'sidebar-nav-icon--active' : 'sidebar-nav-icon'} />
+                                        <span className="sidebar-nav-label">{item.name}</span>
+                                    </Link>
+                                );
+                            })}
                         </nav>
+                    </div>
+
+                    <div className="sidebar-bottom">
+                        <Link to="/settings" className="sidebar-settings-link">
+                            <Settings size={20} />
+                            <span className="text-sm font-medium">Settings</span>
+                        </Link>
+
+                        <div className="sidebar-user-section">
+                            <div className="flex items-center gap-3">
+                                <div className="sidebar-avatar">
+                                    <User className="text-slate-400" size={20} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="sidebar-user-name">Juan Dela Cruz</span>
+                                    <span className="sidebar-user-role">Patient Account</span>
+                                </div>
+                            </div>
+                            <Link to="/login" className="sidebar-logout-btn inline-flex items-center justify-center transition-all hover:text-red-400">
+                                <LogOut size={18} />
+                            </Link>
+                        </div>
                     </div>
                 </aside>
 

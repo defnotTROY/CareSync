@@ -4,11 +4,18 @@ export default function Navbar() {
     return (
         <nav className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 lg:px-20 bg-white/90 backdrop-blur-md border-b border-slate-100">
 
-            <Link to="/" className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold">M</span>
+            <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
+                {/* The Icon Container */}
+                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center overflow-hidden">
+                    <img
+                        src="/mjylogo.png"
+                        alt="MJY 88 Logo"
+                        className="w-5 h-5 object-contain"
+                    />
                 </div>
-                <span className="font-bold text-xl tracking-tight text-slate-900">MJY 88</span>
+
+                {/* The Brand Name */}
+                <span className="font-bold text-xl tracking-tight text-slate-900">CareSync</span>
             </Link>
 
             <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600">
