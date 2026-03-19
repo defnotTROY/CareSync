@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 
@@ -5,44 +6,53 @@ import { AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './lib/AuthContext.jsx';
 import ProtectedRoute from './components/layout/ProtectedRoute.jsx';
 
-// Layout components
+// Layout components (kept eager — used on landing page)
 import Navbar from "./components/layout/Navbar.jsx";
 import Footer from "./components/layout/Footer.jsx";
 
-// Home components
+// Home components (kept eager — used on landing page)
 import Hero from "./components/home/Hero.jsx";
 import Specializations from "./components/home/Specializations.jsx";
 import WhyChooseUs from "./components/home/WhyChooseUs.jsx";
 
-// Pages
-import Login from "./pages/Login.jsx";
-import SignUp from "./pages/SignUp.jsx";
-import ClientDashboard from "./pages/ClientDashboard.jsx";
-import BookAppointment from "./pages/BookAppointment.jsx";
-import MyAppointments from "./pages/MyAppointments.jsx";
+// --- Lazy-loaded Pages ---
+const Login = lazy(() => import("./pages/Login.jsx"));
+const SignUp = lazy(() => import("./pages/SignUp.jsx"));
+const ClientDashboard = lazy(() => import("./pages/ClientDashboard.jsx"));
+const BookAppointment = lazy(() => import("./pages/BookAppointment.jsx"));
+const MyAppointments = lazy(() => import("./pages/MyAppointments.jsx"));
 
 // Staff Pages
-import StaffDashboard from "./pages/staff/StaffDashboard.jsx";
-import ClientCheckIn from "./pages/staff/ClientCheckIn.jsx";
-import ClientQueue from "./pages/staff/ClientQueue.jsx";
-import StaffAppointments from "./pages/staff/StaffAppointments.jsx";
-import PaymentRecords from "./pages/staff/PaymentRecords.jsx";
-import StaffSettings from "./pages/staff/StaffSettings.jsx";
-import ClientRecords from "./pages/staff/ClientRecords.jsx";
-import NewClient from "./pages/staff/NewClient.jsx";
+const StaffDashboard = lazy(() => import("./pages/staff/StaffDashboard.jsx"));
+const ClientCheckIn = lazy(() => import("./pages/staff/ClientCheckIn.jsx"));
+const ClientQueue = lazy(() => import("./pages/staff/ClientQueue.jsx"));
+const StaffAppointments = lazy(() => import("./pages/staff/StaffAppointments.jsx"));
+const PaymentRecords = lazy(() => import("./pages/staff/PaymentRecords.jsx"));
+const StaffSettings = lazy(() => import("./pages/staff/StaffSettings.jsx"));
+const ClientRecords = lazy(() => import("./pages/staff/ClientRecords.jsx"));
+const NewClient = lazy(() => import("./pages/staff/NewClient.jsx"));
 
 // Doctor Pages
-import DoctorDashboard from "./pages/doctor/DoctorDashboard.jsx";
-import DoctorQueue from "./pages/doctor/DoctorQueue.jsx";
-import Consultation from "./pages/doctor/Consultation.jsx";
-import DoctorRecords from "./pages/doctor/DoctorRecords.jsx";
+const DoctorDashboard = lazy(() => import("./pages/doctor/DoctorDashboard.jsx"));
+const DoctorQueue = lazy(() => import("./pages/doctor/DoctorQueue.jsx"));
+const Consultation = lazy(() => import("./pages/doctor/Consultation.jsx"));
+const DoctorRecords = lazy(() => import("./pages/doctor/DoctorRecords.jsx"));
 
 // Admin Pages
-import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
-import StaffManagement from "./pages/admin/StaffManagement.jsx";
-import RevenueTracker from "./pages/admin/RevenueTracker.jsx";
-import Inventory from "./pages/admin/Inventory.jsx";
-import Maintenance from "./pages/admin/Maintenance.jsx";
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.jsx"));
+const StaffManagement = lazy(() => import("./pages/admin/StaffManagement.jsx"));
+const RevenueTracker = lazy(() => import("./pages/admin/RevenueTracker.jsx"));
+const Inventory = lazy(() => import("./pages/admin/Inventory.jsx"));
+const Maintenance = lazy(() => import("./pages/admin/Maintenance.jsx"));
+
+// Shared loading fallback
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+    </div>
+  );
+}
 
 function LandingPage() {
   return (
@@ -106,7 +116,9 @@ function App() {
     <Router>
       <AuthProvider>
         <div className="w-full min-h-screen bg-white text-slate-900">
-          <AnimatedRoutes />
+          <Suspense fallback={<PageLoader />}>
+            <AnimatedRoutes />
+          </Suspense>
         </div>
       </AuthProvider>
     </Router>
