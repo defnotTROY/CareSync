@@ -33,6 +33,144 @@
     @apply text-slate-400 text-sm max-w-[280px];
 }
 
+/* ---- Manual Entry Tab ---- */
+.checkin-manual-body {
+    @apply p-8 space-y-6;
+}
+
+.checkin-search-bar {
+    @apply flex items-center gap-3 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3
+    focus-within:border-black focus-within:bg-white transition-all;
+}
+
+.checkin-search-input {
+    @apply flex-1 bg-transparent border-none outline-none text-sm font-medium placeholder:text-slate-400;
+}
+
+.checkin-search-btn {
+    @apply bg-black text-white text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-xl
+    hover:bg-slate-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed;
+}
+
+/* ---- Search Results ---- */
+.checkin-results-area {
+    @apply min-h-[300px];
+}
+
+.checkin-results-list {
+    @apply space-y-3;
+}
+
+.checkin-results-count {
+    @apply text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4;
+}
+
+.checkin-result-card {
+    @apply w-full flex items-center gap-4 p-5 bg-white border-2 border-slate-100 rounded-2xl
+    text-left hover:border-slate-300 hover:shadow-md transition-all cursor-pointer;
+}
+
+.checkin-result-card--active {
+    @apply border-black shadow-lg shadow-black/5;
+}
+
+.checkin-result-avatar {
+    @apply w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center
+    text-sm font-black text-slate-600 shrink-0;
+}
+
+.checkin-result-card--active .checkin-result-avatar {
+    @apply bg-black text-white;
+}
+
+.checkin-result-info {
+    @apply flex-1 overflow-hidden;
+}
+
+.checkin-result-name {
+    @apply font-bold text-sm text-slate-900 truncate;
+}
+
+.checkin-result-detail {
+    @apply text-xs text-slate-400 font-medium truncate mt-0.5;
+}
+
+.checkin-result-meta {
+    @apply flex flex-col items-end shrink-0 gap-1;
+}
+
+.checkin-result-time {
+    @apply text-xs font-bold text-slate-700;
+}
+
+.checkin-result-id {
+    @apply text-[10px] font-mono text-slate-400;
+}
+
+/* ---- Empty State ---- */
+.checkin-empty-state {
+    @apply flex flex-col items-center justify-center py-16 text-center;
+}
+
+/* ---- Patient Info Card ---- */
+.checkin-patient-card {
+    @apply bg-white border-2 border-slate-100 rounded-[2rem] overflow-hidden shadow-sm;
+}
+
+.checkin-patient-header {
+    @apply flex items-center gap-4 p-6 bg-slate-50 border-b border-slate-100 relative;
+}
+
+.checkin-patient-avatar-lg {
+    @apply w-14 h-14 bg-black text-white rounded-2xl flex items-center justify-center
+    text-xl font-black shrink-0;
+}
+
+.checkin-patient-name {
+    @apply font-bold text-lg text-slate-900;
+}
+
+.checkin-patient-id {
+    @apply text-[10px] font-mono text-slate-400 uppercase tracking-wider mt-0.5;
+}
+
+.checkin-patient-close {
+    @apply absolute top-4 right-4 p-2 text-slate-400 hover:text-black
+    hover:bg-slate-100 rounded-full transition-all;
+}
+
+.checkin-patient-details {
+    @apply p-6 space-y-4;
+}
+
+.checkin-detail-row {
+    @apply flex items-center gap-3 text-sm font-medium text-slate-700;
+}
+
+/* ---- Success State ---- */
+.checkin-success-card {
+    @apply bg-emerald-50 border-2 border-emerald-200 rounded-[2rem] p-10 text-center;
+}
+
+.checkin-success-icon {
+    @apply w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center
+    mx-auto mb-6 shadow-lg shadow-emerald-500/30;
+    animation: checkinPulse 1s ease-out;
+}
+
+.checkin-success-title {
+    @apply text-2xl font-black text-emerald-900 uppercase tracking-tight;
+}
+
+.checkin-success-text {
+    @apply text-emerald-700 font-medium mt-2;
+}
+
+/* ---- Procedure Hint ---- */
+.checkin-procedure-hint {
+    @apply text-xs text-slate-400 font-medium text-center py-4 mb-2;
+}
+
 /* ---- Procedure Checklist ---- */
 .checkin-procedure-btn {
     @apply w-full flex gap-4 p-4 rounded-2xl border-2 text-left transition-all;
@@ -44,4 +182,19 @@
 
 .checkin-procedure-label {
     @apply font-bold text-sm uppercase;
+}
+
+/* ---- Animation ---- */
+@keyframes checkinPulse {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.15);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }

@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, UserCheck, Users, CalendarDays,
-    CreditCard, FileText, Search, Bell, LogOut, MoreVertical,
-    Clock, Play, CheckCircle2, AlertCircle, ArrowRight,
-    Settings, UserPlus
+    CreditCard, FileText, Bell, LogOut, ArrowRight,
+    CheckCircle2, AlertCircle, Settings, UserPlus, Loader2,
+    Clock, RefreshCw
 } from 'lucide-react';
+import { supabase } from '../../supabaseClient';
 import PageTransition from "../../components/layout/PageTransition.jsx";
 import '../../styles/staff-portal.css';
 import './ClientQueue.css';
@@ -14,9 +15,162 @@ export default function ClientQueue() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const handleLogout = () => {
+    // --- STAFF IDENTITY ---
+    const [staffName, setStaffName] = useState("Staff");
+    const [staffLoading, setStaffLoading] = useState(true);
+
+    // --- QUEUE DATA ---
+    const [waitingQueue, setWaitingQueue] = useState([]);
+    const [servingNow, setServingNow] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [actioningId, setActioningId] = useState(null);
+
+    // --- FETCH STAFF IDENTITY ---
+    useEffect(() => {
+        async function fetchStaffInfo() {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('full_name')
+                        .eq('id', user.id)
+                        .single();
+                    setStaffName(profile?.full_name || "Staff Member");
+                }
+            } catch (err) {
+                console.error("Staff info error:", err);
+            } finally {
+                setStaffLoading(false);
+            }
+        }
+        fetchStaffInfo();
+    }, []);
+
+    // --- FETCH QUEUE DATA ---
+    async function fetchQueueData() {
+        try {
+            setLoading(true);
+
+            // Fetch CHECKED_IN (waiting) and IN_PROGRESS (serving) appointments
+            const { data: appointments, error } = await supabase
+                .from('appointments')
+                .select('*')
+                .in('status', ['CHECKED_IN', 'IN_PROGRESS'])
+                .order('created_at', { ascending: true });
+
+            if (error) throw error;
+
+            if (!appointments || appointments.length === 0) {
+                setWaitingQueue([]);
+                setServingNow([]);
+                return;
+            }
+
+            // Fetch profiles for patient names
+            const userIds = [...new Set(appointments.map(a => a.user_id).filter(Boolean))];
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, full_name')
+                .in('id', userIds);
+
+            // Merge profiles with appointments
+            const merged = appointments.map(apt => ({
+                ...apt,
+                profiles: (profiles || []).find(p => String(p.id) === String(apt.user_id)) || { full_name: "Unknown Patient" }
+            }));
+
+            setWaitingQueue(merged.filter(a => a.status === 'CHECKED_IN'));
+            setServingNow(merged.filter(a => a.status === 'IN_PROGRESS'));
+        } catch (err) {
+            console.error("Queue fetch error:", err.message);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    useEffect(() => {
+        fetchQueueData();
+
+        // Real-time subscription for queue changes
+        const channel = supabase
+            .channel('queue-updates')
+            .on('postgres_changes',
+                { event: '*', schema: 'public', table: 'appointments' },
+                () => {
+                    // Refresh queue on any appointment change
+                    setTimeout(() => fetchQueueData(), 300);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
+
+    // --- CALL PATIENT (CHECKED_IN → IN_PROGRESS) ---
+    const handleCallPatient = async (id) => {
+        setActioningId(id);
+        try {
+            const { error } = await supabase
+                .from('appointments')
+                .update({ status: 'IN_PROGRESS' })
+                .eq('id', id);
+
+            if (error) throw error;
+
+            // Optimistic update
+            const calledPatient = waitingQueue.find(a => a.id === id);
+            if (calledPatient) {
+                setWaitingQueue(prev => prev.filter(a => a.id !== id));
+                setServingNow(prev => [...prev, { ...calledPatient, status: 'IN_PROGRESS' }]);
+            }
+        } catch (err) {
+            console.error("Call patient error:", err.message);
+        } finally {
+            setActioningId(null);
+        }
+    };
+
+    // --- MARK AS FINISHED (IN_PROGRESS → COMPLETED) ---
+    const handleFinish = async (id) => {
+        setActioningId(id);
+        try {
+            const { error } = await supabase
+                .from('appointments')
+                .update({ status: 'COMPLETED' })
+                .eq('id', id);
+
+            if (error) throw error;
+
+            // Optimistic update
+            setServingNow(prev => prev.filter(a => a.id !== id));
+        } catch (err) {
+            console.error("Finish error:", err.message);
+        } finally {
+            setActioningId(null);
+        }
+    };
+
+    // --- LOGOUT ---
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
         navigate('/login');
     };
+
+    // --- HELPERS ---
+    const getWaitTime = (createdAt) => {
+        const now = new Date();
+        const created = new Date(createdAt);
+        const diffMs = now - created;
+        const diffMins = Math.floor(diffMs / 60000);
+        if (diffMins < 1) return "Just now";
+        if (diffMins < 60) return `${diffMins}m`;
+        return `${Math.floor(diffMins / 60)}h ${diffMins % 60}m`;
+    };
+
+    const totalInQueue = waitingQueue.length + servingNow.length;
 
     const navItems = [
         { name: 'Dashboard', icon: LayoutDashboard, path: '/staff/dashboard' },
@@ -27,12 +181,6 @@ export default function ClientQueue() {
         { name: 'Client Record', icon: FileText, path: '/staff/records' },
         { name: 'New Client', icon: UserPlus, path: '/staff/new-client' },
     ];
-
-    const [queueData, setQueueData] = useState([
-        { id: 'Q-102', name: 'Marcus Aurelius', service: 'General Checkup', wait: '12m', status: 'waiting', priority: 'Standard' },
-        { id: 'Q-103', name: 'Elena Lamberti', service: 'Cardiology', wait: '5m', status: 'waiting', priority: 'Urgent' },
-        { id: 'Q-101', name: 'Julius Caesar', service: 'Physical Exam', wait: '45m', status: 'in-progress', room: 'Exam Room 1' },
-    ]);
 
     return (
         <PageTransition>
@@ -77,10 +225,10 @@ export default function ClientQueue() {
 
                         <div className="staff-user-section">
                             <div className="staff-user-info">
-                                <div className="staff-user-avatar">JD</div>
-                                <div className="flex flex-col">
-                                    <span className="staff-user-name">Juan D.</span>
-                                    <span className="staff-user-role">Admin</span>
+                                <div className="staff-user-avatar">{staffName ? staffName.charAt(0) : 'S'}</div>
+                                <div className="flex flex-col overflow-hidden">
+                                    <span className="staff-user-name truncate w-20">{staffLoading ? "..." : staffName}</span>
+                                    <span className="staff-user-role">Staff</span>
                                 </div>
                             </div>
                             <button
@@ -102,63 +250,133 @@ export default function ClientQueue() {
                             <div className="queue-header-stats">
                                 <span className="queue-active-count">
                                     <div className="staff-pulse-dot" />
-                                    {queueData.length} Active
+                                    {loading ? "..." : totalInQueue} Active
                                 </span>
                                 <span>•</span>
-                                <span>Avg. Wait: 18 Mins</span>
+                                <span>{waitingQueue.length} Waiting</span>
+                                <span>•</span>
+                                <span>{servingNow.length} Serving</span>
                             </div>
                         </div>
-                        <button className="staff-bell-btn">
-                            <Bell size={20} />
-                            <div className="staff-bell-dot" />
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={fetchQueueData}
+                                className="staff-btn-filter"
+                                title="Refresh queue"
+                            >
+                                <RefreshCw size={16} /> Refresh
+                            </button>
+                            <button className="staff-bell-btn">
+                                <Bell size={20} />
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="staff-grid-12">
-                        {/* Waiting List */}
-                        <div className="col-span-8 space-y-6">
-                            <h3 className="staff-section-label-px">Waiting Area</h3>
-                            <div className="space-y-3">
-                                {queueData.filter(p => p.status === 'waiting').map((patient) => (
-                                    <div key={patient.id} className="queue-patient-card group">
-                                        <div className="flex items-center gap-6">
-                                            <div className="queue-patient-avatar">QR</div>
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="queue-patient-id">{patient.id}</span>
-                                                    <h4 className="queue-patient-name">{patient.name}</h4>
-                                                    {patient.priority === 'Urgent' && <AlertCircle size={16} className="text-red-500" />}
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-32 text-slate-400">
+                            <Loader2 size={40} className="animate-spin mb-4" />
+                            <p className="text-sm font-medium">Loading queue...</p>
+                        </div>
+                    ) : (
+                        <div className="staff-grid-12">
+                            {/* Waiting List */}
+                            <div className="col-span-8 space-y-6">
+                                <h3 className="staff-section-label-px">
+                                    Waiting Area
+                                    {waitingQueue.length > 0 && (
+                                        <span className="queue-section-count">{waitingQueue.length}</span>
+                                    )}
+                                </h3>
+                                <div className="space-y-3">
+                                    {waitingQueue.length > 0 ? (
+                                        waitingQueue.map((patient) => (
+                                            <div key={patient.id} className="queue-patient-card group">
+                                                <div className="flex items-center gap-6">
+                                                    <div className="queue-patient-avatar">
+                                                        {patient.profiles.full_name.charAt(0)}
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="queue-patient-id">#{patient.id.slice(0, 8)}</span>
+                                                            <h4 className="queue-patient-name">{patient.profiles.full_name}</h4>
+                                                        </div>
+                                                        <p className="queue-patient-service">{patient.purpose} • {patient.appointment_time}</p>
+                                                    </div>
                                                 </div>
-                                                <p className="queue-patient-service">{patient.service}</p>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="queue-wait-badge">
+                                                        <Clock size={12} />
+                                                        {getWaitTime(patient.created_at)}
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleCallPatient(patient.id)}
+                                                        disabled={actioningId === patient.id}
+                                                        className="queue-call-btn"
+                                                    >
+                                                        {actioningId === patient.id ? (
+                                                            <Loader2 size={14} className="animate-spin" />
+                                                        ) : (
+                                                            <>Call Patient <ArrowRight size={14} /></>
+                                                        )}
+                                                    </button>
+                                                </div>
                                             </div>
+                                        ))
+                                    ) : (
+                                        <div className="queue-empty-state">
+                                            <Users size={48} className="text-slate-200 mb-4" />
+                                            <p className="text-slate-500 font-bold">No patients waiting</p>
+                                            <p className="text-slate-400 text-xs mt-1">Checked-in patients will appear here automatically.</p>
                                         </div>
-                                        <button className="queue-call-btn">
-                                            Call Patient
-                                            <ArrowRight size={14} />
-                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Serving Now */}
+                            <div className="col-span-4 space-y-6">
+                                <h3 className="staff-section-label-px">
+                                    Serving Now
+                                    {servingNow.length > 0 && (
+                                        <span className="queue-section-count">{servingNow.length}</span>
+                                    )}
+                                </h3>
+                                {servingNow.length > 0 ? (
+                                    servingNow.map((patient) => (
+                                        <div key={patient.id} className="queue-serving-card">
+                                            <div className="staff-dark-panel-glow-emerald" />
+                                            <div className="flex justify-between items-center">
+                                                <span className="queue-serving-badge">In Progress</span>
+                                                <span className="queue-serving-room">{patient.appointment_time}</span>
+                                            </div>
+                                            <div>
+                                                <h4 className="queue-serving-name">{patient.profiles.full_name}</h4>
+                                                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">
+                                                    {patient.purpose}
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => handleFinish(patient.id)}
+                                                disabled={actioningId === patient.id}
+                                                className="queue-finish-btn"
+                                            >
+                                                {actioningId === patient.id ? (
+                                                    <Loader2 size={14} className="animate-spin mx-auto" />
+                                                ) : (
+                                                    "Mark as Finished"
+                                                )}
+                                            </button>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="queue-serving-empty">
+                                        <CheckCircle2 size={32} className="text-slate-300 mb-3" />
+                                        <p className="text-slate-400 font-bold text-sm">No active sessions</p>
+                                        <p className="text-slate-400 text-xs mt-1">Call a patient from the waiting area.</p>
                                     </div>
-                                ))}
+                                )}
                             </div>
                         </div>
-
-                        {/* Serving Now */}
-                        <div className="col-span-4 space-y-6">
-                            <h3 className="staff-section-label-px">Serving Now</h3>
-                            {queueData.filter(p => p.status === 'in-progress').map((patient) => (
-                                <div key={patient.id} className="queue-serving-card">
-                                    <div className="staff-dark-panel-glow-emerald" />
-                                    <div className="flex justify-between items-center">
-                                        <span className="queue-serving-badge">In Progress</span>
-                                        <span className="queue-serving-room">{patient.room}</span>
-                                    </div>
-                                    <h4 className="queue-serving-name">{patient.name}</h4>
-                                    <button className="queue-finish-btn">
-                                        Mark as Finished
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                    )}
                 </main>
             </div>
         </PageTransition>

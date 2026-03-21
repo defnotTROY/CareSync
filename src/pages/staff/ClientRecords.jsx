@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, UserCheck, Users, CalendarDays,
     CreditCard, FileText, Bell, LogOut, Settings,
-    Search, Filter, MoreVertical, UserPlus, FileEdit, Trash2
+    Search, Filter, UserPlus, FileEdit, Trash2, Loader2,
+    ChevronLeft, ChevronRight, AlertCircle
 } from 'lucide-react';
+import { supabase } from '../../supabaseClient';
 import PageTransition from "../../components/layout/PageTransition.jsx";
 import '../../styles/staff-portal.css';
 import './ClientRecords.css';
@@ -13,8 +15,143 @@ export default function ClientRecords() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const handleLogout = () => {
+    // --- STAFF IDENTITY ---
+    const [staffName, setStaffName] = useState("Staff");
+    const [staffLoading, setStaffLoading] = useState(true);
+
+    // --- RECORDS DATA ---
+    const [clients, setClients] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    // --- FILTERS & PAGINATION ---
+    const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const recordsPerPage = 10;
+
+    // --- DATA FETCHING ---
+    useEffect(() => {
+        async function fetchInitialData() {
+            try {
+                // 1. Fetch Staff Identity
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('full_name')
+                        .eq('id', user.id)
+                        .single();
+                    setStaffName(profile?.full_name || "Staff Member");
+                }
+                setStaffLoading(false);
+
+                // 2. Fetch Clients & Appointments
+                const { data: profiles, error: profileErr } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('role', 'client')
+                    .order('created_at', { ascending: false });
+
+                if (profileErr) throw profileErr;
+
+                if (!profiles || profiles.length === 0) {
+                    setClients([]);
+                    setLoading(false);
+                    return;
+                }
+
+                // Get all user IDs
+                const userIds = profiles.map(p => p.id);
+
+                // Fetch appointments for these users
+                const { data: appointments, error: aptErr } = await supabase
+                    .from('appointments')
+                    .select('user_id, appointment_date, status')
+                    .in('user_id', userIds);
+
+                if (aptErr) throw aptErr;
+
+                // 3. Process the data
+                const processedClients = profiles.map(profile => {
+                    const userApts = (appointments || []).filter(a => a.user_id === profile.id);
+                    
+                    let lastVisit = "No visits";
+                    let isActive = false;
+
+                    if (userApts.length > 0) {
+                        // Sort appointments by date descending
+                        userApts.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
+                        const mostRecentApt = userApts[0];
+                        
+                        lastVisit = new Date(mostRecentApt.appointment_date).toLocaleDateString(undefined, {
+                            month: 'short', day: 'numeric', year: 'numeric'
+                        });
+
+                        // Active if they have a CONFIRMED, CHECKED_IN, or recent COMPLETED appointment
+                        const hasActiveStatus = userApts.some(a => ['CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS'].includes(a.status));
+                        if (hasActiveStatus) {
+                            isActive = true;
+                        } else {
+                            // Or if they visited in the last 6 months
+                            const sixMonthsAgo = new Date();
+                            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+                            if (new Date(mostRecentApt.appointment_date) > sixMonthsAgo) {
+                                isActive = true;
+                            }
+                        }
+                    }
+
+                    return {
+                        id: profile.id,
+                        displayId: `PAT-${profile.id.slice(0, 6).toUpperCase()}`,
+                        name: profile.full_name || 'Unknown Patient',
+                        email: profile.email,
+                        type: 'Standard', // Placeholder since we don't have patient types
+                        lastVisit,
+                        status: isActive ? 'Active' : 'Inactive'
+                    };
+                });
+
+                setClients(processedClients);
+            } catch (err) {
+                console.error("Error fetching records:", err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchInitialData();
+    }, []);
+
+    // --- FILTER & PAGINATION LOGIC ---
+    const filteredClients = useMemo(() => {
+        if (!searchQuery.trim()) return clients;
+        const query = searchQuery.toLowerCase();
+        return clients.filter(c => 
+            c.name.toLowerCase().includes(query) ||
+            c.email.toLowerCase().includes(query) ||
+            c.displayId.toLowerCase().includes(query)
+        );
+    }, [clients, searchQuery]);
+
+    const totalPages = Math.ceil(filteredClients.length / recordsPerPage);
+    const currentRecords = filteredClients.slice(
+        (currentPage - 1) * recordsPerPage,
+        currentPage * recordsPerPage
+    );
+
+    // Reset page if search changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery]);
+
+    // --- ACTIONS ---
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
         navigate('/login');
+    };
+
+    const handleActionClick = () => {
+        alert("Action restricted. Modifying or deleting patient records requires administrative privileges.");
     };
 
     const navItems = [
@@ -25,13 +162,6 @@ export default function ClientRecords() {
         { name: 'Payment Record', icon: CreditCard, path: '/staff/payments' },
         { name: 'Client Record', icon: FileText, path: '/staff/records' },
         { name: 'New Client', icon: UserPlus, path: '/staff/new-client' },
-    ];
-
-    const patients = [
-        { id: 'PAT-2026-001', name: 'Marcus Aurelius', email: 'marcus@rome.gov', type: 'Student', lastVisit: 'Mar 18, 2026', status: 'Active' },
-        { id: 'PAT-2026-002', name: 'Elena Lamberti', email: 'elena.l@mail.com', type: 'Professional', lastVisit: 'Mar 15, 2026', status: 'Active' },
-        { id: 'PAT-2026-003', name: 'Julius Caesar', email: 'julius@senate.it', type: 'Professional', lastVisit: 'Feb 12, 2026', status: 'Inactive' },
-        { id: 'PAT-2026-004', name: 'Livilla Drusilla', email: 'liv@empire.com', type: 'Student', lastVisit: 'Jan 05, 2026', status: 'Active' },
     ];
 
     return (
@@ -70,10 +200,10 @@ export default function ClientRecords() {
 
                         <div className="staff-user-section">
                             <div className="staff-user-info">
-                                <div className="staff-user-avatar">JD</div>
-                                <div className="flex flex-col">
-                                    <span className="staff-user-name">Juan D.</span>
-                                    <span className="staff-user-role">Admin</span>
+                                <div className="staff-user-avatar">{staffName ? staffName.charAt(0) : 'S'}</div>
+                                <div className="flex flex-col overflow-hidden">
+                                    <span className="staff-user-name truncate w-20">{staffLoading ? "..." : staffName}</span>
+                                    <span className="staff-user-role">Staff</span>
                                 </div>
                             </div>
                             <button onClick={handleLogout} className="staff-logout-btn" title="Logout">
@@ -91,80 +221,118 @@ export default function ClientRecords() {
                             <h1 className="staff-page-title">Client Records</h1>
                             <p className="staff-page-subtitle">Patient health database archive</p>
                         </div>
-                        <button className="staff-btn-primary">
+                        <Link to="/staff/new-client" className="staff-btn-primary">
                             <UserPlus size={16} /> Add New Patient
-                        </button>
+                        </Link>
                     </div>
 
                     {/* SEARCH & FILTER BAR */}
                     <div className="flex gap-4">
                         <div className="flex-1 relative">
                             <Search className="staff-search-icon" size={20} />
-                            <input type="text" placeholder="Search by name, ID, or email address..." className="staff-search-input" />
+                            <input 
+                                type="text" 
+                                placeholder="Search by name, ID, or email address..." 
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="staff-search-input" 
+                            />
                         </div>
-                        <button className="staff-btn-filter-rounded">
+                        <button className="staff-btn-filter-rounded" disabled>
                             <Filter size={18} /> Filter By Type
                         </button>
                     </div>
 
                     {/* RECORDS TABLE */}
                     <div className="staff-table-wrapper">
-                        <table className="staff-table">
-                            <thead>
-                                <tr className="staff-table-head-row">
-                                    <th className="staff-th">Patient ID</th>
-                                    <th className="staff-th">Full Name</th>
-                                    <th className="staff-th">Patient Type</th>
-                                    <th className="staff-th">Last Visit</th>
-                                    <th className="staff-th">Status</th>
-                                    <th className="staff-th text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="staff-table-body">
-                                {patients.map((patient) => (
-                                    <tr key={patient.id} className="staff-table-row">
-                                        <td className="staff-td">
-                                            <span className="records-patient-id">{patient.id}</span>
-                                        </td>
-                                        <td className="staff-td">
-                                            <p className="records-patient-name">{patient.name}</p>
-                                            <p className="records-patient-email">{patient.email}</p>
-                                        </td>
-                                        <td className="staff-td">
-                                            <span className={`staff-status-badge ${patient.type === 'Student' ? 'text-blue-500' : 'text-purple-500'}`}>
-                                                {patient.type}
-                                            </span>
-                                        </td>
-                                        <td className="staff-td font-bold text-sm text-slate-600 italic">
-                                            {patient.lastVisit}
-                                        </td>
-                                        <td className="staff-td">
-                                            <div className="flex items-center gap-2">
-                                                <div className={`records-status-dot ${patient.status === 'Active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
-                                                <span className="staff-status-badge text-slate-900">{patient.status}</span>
-                                            </div>
-                                        </td>
-                                        <td className="staff-td text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <button className="records-action-edit">
-                                                    <FileEdit size={16} />
-                                                </button>
-                                                <button className="records-action-delete">
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        <div className="staff-table-footer">
-                            <p className="records-footer-text">Showing 4 of 1,240 records</p>
-                            <div className="flex gap-2">
-                                <button className="staff-pagination-btn">Prev</button>
-                                <button className="staff-pagination-btn">Next</button>
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                                <Loader2 size={32} className="animate-spin mb-4" />
+                                <p className="text-sm font-medium">Loading patient records...</p>
                             </div>
-                        </div>
+                        ) : filteredClients.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-center">
+                                <AlertCircle size={48} className="text-slate-200 mb-4" />
+                                <p className="text-lg font-bold text-slate-500">No records found</p>
+                                <p className="text-sm mt-1 max-w-sm">
+                                    {searchQuery ? "No patients match your search criteria." : "There are currently no clients registered in the system."}
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                <table className="staff-table">
+                                    <thead>
+                                        <tr className="staff-table-head-row">
+                                            <th className="staff-th">Patient ID</th>
+                                            <th className="staff-th">Full Name</th>
+                                            <th className="staff-th">Patient Type</th>
+                                            <th className="staff-th">Last Visit</th>
+                                            <th className="staff-th">Status</th>
+                                            <th className="staff-th text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="staff-table-body">
+                                        {currentRecords.map((patient) => (
+                                            <tr key={patient.displayId} className="staff-table-row">
+                                                <td className="staff-td">
+                                                    <span className="records-patient-id">{patient.displayId}</span>
+                                                </td>
+                                                <td className="staff-td">
+                                                    <p className="records-patient-name">{patient.name}</p>
+                                                    <p className="records-patient-email">{patient.email}</p>
+                                                </td>
+                                                <td className="staff-td">
+                                                    <span className={`staff-status-badge ${patient.type === 'Student' ? 'text-blue-500' : 'text-purple-500'}`}>
+                                                        {patient.type}
+                                                    </span>
+                                                </td>
+                                                <td className="staff-td font-bold text-sm text-slate-600 italic">
+                                                    {patient.lastVisit}
+                                                </td>
+                                                <td className="staff-td">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className={`records-status-dot ${patient.status === 'Active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+                                                        <span className="staff-status-badge text-slate-900">{patient.status}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="staff-td text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <button onClick={handleActionClick} className="records-action-edit" title="Edit Patient">
+                                                            <FileEdit size={16} />
+                                                        </button>
+                                                        <button onClick={handleActionClick} className="records-action-delete" title="Delete Patient">
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                
+                                <div className="staff-table-footer">
+                                    <p className="records-footer-text">
+                                        Showing {Math.min(filteredClients.length, (currentPage - 1) * recordsPerPage + 1)} to {Math.min(filteredClients.length, currentPage * recordsPerPage)} of {filteredClients.length} records
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <button 
+                                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                            disabled={currentPage === 1}
+                                            className="staff-pagination-btn disabled:opacity-50"
+                                        >
+                                            <ChevronLeft size={16} />
+                                        </button>
+                                        <button 
+                                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                            disabled={currentPage >= totalPages}
+                                            className="staff-pagination-btn disabled:opacity-50"
+                                        >
+                                            <ChevronRight size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </main>
             </div>
