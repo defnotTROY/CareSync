@@ -47,3 +47,10 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- ============================================
+-- MIGRATION: Add QR Code column to appointments
+-- ============================================
+-- Stores the base64 QR code data URL generated after booking.
+-- The QR code encodes only the appointment ID for staff check-in scanning.
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS qr_code text;

@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, UserCheck, Users, CalendarDays,
     CreditCard, FileText, Camera, Search, Bell, LogOut,
     CheckCircle2, Settings, UserPlus, Loader2, AlertCircle,
-    Calendar, Clock, X, Sparkles
+    Calendar, Clock, X, Sparkles, ScanLine
 } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
 import { supabase } from '../../supabaseClient';
 import PageTransition from "../../components/layout/PageTransition.jsx";
 import '../../styles/staff-portal.css';
@@ -41,6 +42,13 @@ export default function ClientCheckIn() {
     const [isCheckingIn, setIsCheckingIn] = useState(false);
     const [checkInSuccess, setCheckInSuccess] = useState(false);
 
+    // --- QR SCANNER ---
+    const scannerRef = useRef(null);
+    const scannerContainerId = 'qr-scanner-container';
+    const [scanStatus, setScanStatus] = useState('idle'); // idle | scanning | found | error
+    const [scanMessage, setScanMessage] = useState('');
+    const [scanLoading, setScanLoading] = useState(false);
+
     // --- FETCH STAFF IDENTITY ON MOUNT ---
     useEffect(() => {
         const controller = new AbortController();
@@ -67,6 +75,126 @@ export default function ClientCheckIn() {
         fetchStaffInfo();
         return () => controller.abort();
     }, []);
+
+    // --- QR SCANNER LIFECYCLE ---
+    const stopScanner = useCallback(async () => {
+        if (scannerRef.current) {
+            try {
+                await scannerRef.current.stop();
+            } catch (_) { /* scanner may already be stopped */ }
+            try {
+                scannerRef.current.clear();
+            } catch (_) { /* ignore */ }
+            scannerRef.current = null;
+        }
+    }, []);
+
+    const handleQrScanSuccess = useCallback(async (decodedText) => {
+        // Immediately stop scanner to prevent double-scans
+        await stopScanner();
+        setScanLoading(false);
+        setScanStatus('scanning');
+
+        try {
+            // The QR code contains only the appointment ID
+            const appointmentId = decodedText.trim();
+
+            // Look up the appointment in Supabase
+            const { data: appointment, error: aptError } = await supabase
+                .from('appointments')
+                .select('*')
+                .eq('id', appointmentId)
+                .single();
+
+            if (aptError || !appointment) {
+                setScanStatus('error');
+                setScanMessage('No appointment found for this QR code. It may be invalid or expired.');
+                return;
+            }
+
+            if (appointment.status === 'CHECKED_IN') {
+                setScanStatus('error');
+                setScanMessage('This patient has already been checked in.');
+                return;
+            }
+
+            if (appointment.status !== 'CONFIRMED') {
+                setScanStatus('error');
+                setScanMessage(`This appointment has status "${appointment.status}". Only CONFIRMED appointments can be checked in.`);
+                return;
+            }
+
+            // Fetch patient profile info
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('id, full_name')
+                .eq('id', appointment.user_id)
+                .single();
+
+            const enrichedApt = {
+                ...appointment,
+                profiles: profile || { full_name: 'Unknown Patient' }
+            };
+
+            // Auto-select the appointment for check-in
+            handleSelectAppointment(enrichedApt);
+            setScanStatus('found');
+            setScanMessage(`Found: ${enrichedApt.profiles.full_name} — ${appointment.purpose}`);
+
+            // Reset scan status after 3s so staff can see the patient card
+            setTimeout(() => {
+                setScanStatus('idle');
+                setScanMessage('');
+            }, 3000);
+        } catch (err) {
+            console.error('QR scan lookup error:', err);
+            setScanStatus('error');
+            setScanMessage('Error looking up appointment. Please try again or use Manual Entry.');
+        }
+    }, [stopScanner]);
+
+    // Start/stop scanner when tab changes
+    useEffect(() => {
+        if (activeTab === 'scan' && scanStatus === 'idle') {
+            // Small delay to ensure DOM element exists
+            const timer = setTimeout(async () => {
+                const containerEl = document.getElementById(scannerContainerId);
+                if (!containerEl) return;
+
+                setScanLoading(true);
+                try {
+                    const html5Qrcode = new Html5Qrcode(scannerContainerId);
+                    scannerRef.current = html5Qrcode;
+
+                    await html5Qrcode.start(
+                        { facingMode: 'environment' },
+                        { fps: 10, qrbox: { width: 250, height: 250 } },
+                        handleQrScanSuccess,
+                        () => {} // ignore scan failures (no QR in frame yet)
+                    );
+                    setScanLoading(false);
+                } catch (err) {
+                    console.error('QR Scanner init error:', err);
+                    setScanLoading(false);
+                    setScanStatus('error');
+                    setScanMessage('Could not access camera. Please check permissions or use Manual Entry.');
+                }
+            }, 300);
+
+            return () => clearTimeout(timer);
+        }
+
+        if (activeTab !== 'scan') {
+            stopScanner();
+            setScanStatus('idle');
+            setScanMessage('');
+        }
+    }, [activeTab, scanStatus, handleQrScanSuccess, stopScanner]);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => { stopScanner(); };
+    }, [stopScanner]);
 
     // --- SEARCH FOR CONFIRMED APPOINTMENTS ---
     const handleSearch = async () => {
@@ -304,23 +432,48 @@ export default function ClientCheckIn() {
                                     </button>
                                 </div>
 
-                                {/* SCAN TAB — Placeholder */}
+                                {/* SCAN TAB — Live QR Scanner */}
                                 {activeTab === 'scan' && (
-                                    <div className="checkin-scanner-body">
-                                        <div className="checkin-scanner-frame group">
-                                            <div className="checkin-scanner-hover" />
-                                            <Camera size={64} className="text-slate-200" />
-                                        </div>
-                                        <div className="text-center space-y-2">
-                                            <p className="checkin-scanner-title">QR Scanner</p>
-                                            <p className="checkin-scanner-desc">QR scanning is coming soon. Use Manual Entry to search for patients.</p>
-                                        </div>
-                                        <button
-                                            onClick={() => setActiveTab('manual')}
-                                            className="staff-btn-activate"
-                                        >
-                                            Switch to Manual Entry
-                                        </button>
+                                    <div className="checkin-scanner-body-live">
+                                        {scanStatus === 'found' ? (
+                                            <div className="checkin-scan-found">
+                                                <div className="checkin-scan-found-icon">
+                                                    <CheckCircle2 size={32} />
+                                                </div>
+                                                <p className="checkin-scan-found-title">QR Code Scanned!</p>
+                                                <p className="checkin-scan-found-text">{scanMessage}</p>
+                                            </div>
+                                        ) : scanStatus === 'error' ? (
+                                            <div className="checkin-scan-error">
+                                                <AlertCircle size={32} className="text-red-400" />
+                                                <p className="text-sm font-bold text-red-600 mt-3">{scanMessage}</p>
+                                                <button
+                                                    onClick={() => {
+                                                        setScanStatus('idle');
+                                                        setScanMessage('');
+                                                    }}
+                                                    className="staff-btn-activate mt-4"
+                                                >
+                                                    <ScanLine size={16} /> Try Again
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="checkin-qr-viewport">
+                                                    <div id={scannerContainerId} className="checkin-qr-reader" />
+                                                    {scanLoading && (
+                                                        <div className="checkin-qr-loading">
+                                                            <Loader2 size={32} className="animate-spin text-white" />
+                                                            <p className="text-white text-xs font-bold mt-2">Starting camera...</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="text-center space-y-2 mt-4">
+                                                    <p className="checkin-scanner-title">Scan Patient QR</p>
+                                                    <p className="checkin-scanner-desc">Position the QR code within the camera frame to auto-detect the appointment.</p>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 )}
 

@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, CalendarPlus, ClipboardList, Settings,
-    LogOut, ShieldCheck, User, ChevronLeft, ChevronRight, Check, Clock, Printer, Download, Loader2
+    LogOut, ShieldCheck, User, ChevronLeft, ChevronRight, Check, Clock, Printer, Download, Loader2, QrCode
 } from 'lucide-react';
+import QRCode from 'qrcode';
 import { supabase } from '../supabaseClient';
+import { useToast } from '../lib/ToastContext.jsx';
 import PageTransition from "../components/layout/PageTransition.jsx";
 import '../styles/client-portal.css';
 import './BookAppointment.css';
@@ -12,6 +14,7 @@ import './BookAppointment.css';
 export default function BookAppointment() {
     const location = useLocation();
     const navigate = useNavigate();
+    const toast = useToast();
     const today = new Date();
 
     // Check if we are rescheduling an existing appointment
@@ -31,6 +34,7 @@ export default function BookAppointment() {
     const [currentYear, setCurrentYear] = useState(today.getFullYear());
     const [monthIndex, setMonthIndex] = useState(today.getMonth());
     const [appointmentId, setAppointmentId] = useState(null);
+    const [qrCodeDataUrl, setQrCodeDataUrl] = useState(null);
 
     // --- PRE-FILL DATA IF RESCHEDULING ---
     useEffect(() => {
@@ -82,7 +86,7 @@ export default function BookAppointment() {
             const { data: { user } } = await supabase.auth.getUser();
 
             if (!user) {
-                alert("Please log in to book an appointment");
+                toast.error("Please log in to book an appointment");
                 navigate('/login');
                 return;
             }
@@ -124,13 +128,33 @@ export default function BookAppointment() {
             if (result.error) throw result.error;
 
             if (result.data && result.data[0]) {
-                setAppointmentId(result.data[0].id.slice(0, 8).toUpperCase());
+                const aptId = result.data[0].id;
+                setAppointmentId(aptId.slice(0, 8).toUpperCase());
+
+                // --- QR CODE GENERATION (encodes only the appointment ID) ---
+                try {
+                    const qrDataUrl = await QRCode.toDataURL(aptId, {
+                        width: 280,
+                        margin: 2,
+                        color: { dark: '#000000', light: '#ffffff' }
+                    });
+                    setQrCodeDataUrl(qrDataUrl);
+
+                    // Store QR code in Supabase appointments table
+                    await supabase
+                        .from('appointments')
+                        .update({ qr_code: qrDataUrl })
+                        .eq('id', aptId);
+                } catch (qrErr) {
+                    console.error('QR Code generation error:', qrErr);
+                    // Non-blocking — booking still succeeds even if QR fails
+                }
             }
 
             setCurrentStep(4);
         } catch (error) {
             console.error("Booking Error:", error);
-            alert("Error saving appointment: " + error.message);
+            toast.error("Error saving appointment: " + error.message);
         } finally {
             setIsSaving(false);
         }
@@ -341,6 +365,38 @@ export default function BookAppointment() {
                                         </div>
                                         <div><p className="confirm-label">Purpose</p><p className="confirm-value">{purpose} Medical</p></div>
                                     </div>
+
+                                    {/* --- QR CODE DISPLAY --- */}
+                                    {qrCodeDataUrl && (
+                                        <div className="qr-code-section">
+                                            <div className="qr-code-container">
+                                                <div className="qr-code-badge">
+                                                    <QrCode size={14} />
+                                                    <span>Check-in QR</span>
+                                                </div>
+                                                <img
+                                                    src={qrCodeDataUrl}
+                                                    alt="Appointment QR Code"
+                                                    className="qr-code-image"
+                                                />
+                                                <p className="qr-code-instruction">
+                                                    Please show this QR code to the staff at the clinic for check-in.
+                                                </p>
+                                                <button
+                                                    onClick={() => {
+                                                        const link = document.createElement('a');
+                                                        link.download = `CareSync-QR-${appointmentId}.png`;
+                                                        link.href = qrCodeDataUrl;
+                                                        link.click();
+                                                    }}
+                                                    className="qr-download-btn"
+                                                >
+                                                    <Download size={16} /> Download QR Code
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="receipt-actions">
                                         <button className="confirm-btn-download"><Download size={16} /> Download</button>
                                         <button className="confirm-btn-print"><Printer size={16} /> Print</button>

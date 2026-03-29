@@ -1,17 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, Users, ClipboardList, FileText,
-    Settings, LogOut, Bell, Search, Filter,
-    UserCheck, Clock, ArrowRight, Activity, UserPlus
+    Settings, LogOut, Bell, UserCheck, Clock,
+    ArrowRight, Activity, Loader2
 } from 'lucide-react';
+import { supabase } from '../../lib/supabase.js';
+import { useAuth } from '../../lib/AuthContext.jsx';
 import PageTransition from "../../components/layout/PageTransition.jsx";
 
 export default function DoctorQueue() {
     const location = useLocation();
     const navigate = useNavigate();
+    const { user } = useAuth();
 
-    const handleLogout = () => navigate('/login');
+    const [loading, setLoading] = useState(true);
+    const [queue, setQueue] = useState([]);
+    const [callingPatientId, setCallingPatientId] = useState(null);
 
     const navItems = [
         { name: 'Dashboard', icon: LayoutDashboard, path: '/doctor/dashboard' },
@@ -20,18 +25,95 @@ export default function DoctorQueue() {
         { name: 'Client Record', icon: FileText, path: '/doctor/records' },
     ];
 
-    const queue = [
-        { id: 'Q-001', name: 'John Doe', type: 'Follow-up', status: 'Ready', time: '10 mins ago', priority: 'High' },
-        { id: 'Q-002', name: 'Jane Smith', type: 'General', status: 'Vitals Taken', time: '25 mins ago', priority: 'Normal' },
-        { id: 'Q-003', name: 'Robert Brown', type: 'Consultation', status: 'Waiting', time: '40 mins ago', priority: 'Normal' },
-        { id: 'Q-004', name: 'Emily Davis', type: 'Laboratory', status: 'Ready', time: '5 mins ago', priority: 'Normal' },
-    ];
+    useEffect(() => {
+        if (user) {
+            fetchQueue();
+        }
+
+        // Subscribe to real-time updates
+        const channel = supabase
+            .channel('doctor-queue')
+            .on('postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'appointments' },
+                () => {
+                    fetchQueue();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user]);
+
+    async function fetchQueue() {
+        try {
+            setLoading(true);
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayStr = today.toISOString().split('T')[0];
+            const tomorrowStr = new Date(today.getTime() + 86400000).toISOString().split('T')[0];
+
+            const { data, error } = await supabase
+                .from('appointments')
+                .select(`
+                    *,
+                    profiles:user_id (full_name, age, gender)
+                `)
+                .gte('appointment_date', todayStr)
+                .lt('appointment_date', tomorrowStr)
+                .in('status', ['CHECKED_IN', 'PENDING', 'IN_PROGRESS'])
+                .order('appointment_time', { ascending: true });
+
+            if (error) throw error;
+
+            setQueue(data || []);
+        } catch (err) {
+            console.error('Queue fetch error:', err.message);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const handleLogout = () => navigate('/login');
+
+    const formatTime = (timeStr) => {
+        if (!timeStr) return '--:--';
+        const [hours, minutes] = timeStr.split(':');
+        const hour = parseInt(hours);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 || 12;
+        return `${displayHour}:${minutes} ${ampm}`;
+    };
+
+    const getTimeAgo = (appointmentTime) => {
+        if (!appointmentTime) return '';
+        const now = new Date();
+        const aptTime = new Date(`2000-01-01T${appointmentTime}`);
+        const diff = Math.floor((now - aptTime) / 60000); // minutes
+
+        if (diff < 0) return 'Upcoming';
+        if (diff < 1) return 'Just now';
+        if (diff < 60) return `${diff} mins ago`;
+        const hours = Math.floor(diff / 60);
+        return `${hours}h ${diff % 60}m ago`;
+    };
+
+    const getPriorityColor = (waitTime) => {
+        if (waitTime.includes('High') || waitTime.includes('60')) return 'border-red-200 text-red-500 bg-red-50';
+        return 'border-slate-200 text-slate-400 bg-slate-50';
+    };
+
+    const handleCallPatient = (appointment) => {
+        setCallingPatientId(appointment.id);
+        navigate('/doctor/consultation', { state: { appointment } });
+    };
 
     return (
         <PageTransition>
             <div className="flex min-h-screen bg-[#F8FAFC] text-slate-900 font-sans">
-
-                {/* SIDEBAR (Standardized) */}
+                {/* SIDEBAR */}
                 <aside className="w-72 bg-black flex flex-col justify-between py-10 px-6 shrink-0 h-screen sticky top-0">
                     <div className="space-y-10">
                         <div className="flex items-center gap-3 px-2">
@@ -62,13 +144,15 @@ export default function DoctorQueue() {
                         </Link>
                         <div className="flex items-center justify-between pt-2">
                             <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 bg-slate-800 rounded-full flex items-center justify-center text-[10px] text-white font-bold">JD</div>
+                                <div className="w-9 h-9 bg-slate-800 rounded-full flex items-center justify-center text-[10px] text-white font-bold">D</div>
                                 <div className="flex flex-col">
-                                    <span className="text-white text-[11px] font-bold uppercase leading-none">Juan D.</span>
-                                    <span className="text-slate-500 text-[8px] font-bold uppercase tracking-widest mt-1">Doctor Admin</span>
+                                    <span className="text-white text-[11px] font-bold uppercase leading-none">Doctor</span>
+                                    <span className="text-slate-500 text-[8px] font-bold uppercase tracking-widest mt-1">Terminal</span>
                                 </div>
                             </div>
-                            <button onClick={handleLogout} className="p-2 text-slate-500 hover:text-red-400 transition-all"><LogOut size={18} /></button>
+                            <button onClick={handleLogout} className="p-2 text-slate-500 hover:text-red-400 transition-all">
+                                <LogOut size={18} />
+                            </button>
                         </div>
                     </div>
                 </aside>
@@ -80,13 +164,11 @@ export default function DoctorQueue() {
                             <h1 className="text-5xl font-black text-slate-950 uppercase tracking-tighter">Live Queue</h1>
                             <p className="text-slate-500 font-medium uppercase text-[10px] tracking-[0.2em]">Patient hallway management</p>
                         </div>
-                        <div className="flex gap-4">
-                            <div className="bg-white border-2 border-slate-50 px-6 py-4 rounded-2xl flex items-center gap-4 shadow-sm">
-                                <Activity className="text-emerald-500" size={20} />
-                                <div>
-                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Efficiency</p>
-                                    <p className="text-sm font-black">94% OPTIMAL</p>
-                                </div>
+                        <div className="bg-white border-2 border-slate-50 px-6 py-4 rounded-2xl flex items-center gap-4 shadow-sm">
+                            <Activity className="text-emerald-500" size={20} />
+                            <div>
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Queue Status</p>
+                                <p className="text-sm font-black">{queue.length} PATIENTS</p>
                             </div>
                         </div>
                     </div>
@@ -94,41 +176,65 @@ export default function DoctorQueue() {
                     {/* QUEUE GRID */}
                     <div className="grid grid-cols-12 gap-8">
                         <div className="col-span-12 space-y-4">
-                            {queue.map((patient, i) => (
-                                <div key={patient.id} className="bg-white border-2 border-slate-50 rounded-[2rem] p-6 flex items-center justify-between hover:border-black transition-all group shadow-sm">
-                                    <div className="flex items-center gap-8">
-                                        <div className="w-16 h-16 bg-slate-50 rounded-2xl flex flex-col items-center justify-center border border-slate-100">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase leading-none mb-1">Rank</span>
-                                            <span className="text-xl font-black">{i + 1}</span>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-3">
-                                                <h4 className="text-xl font-black uppercase tracking-tight">{patient.name}</h4>
-                                                <span className={`text-[8px] font-black px-2 py-0.5 rounded border ${patient.priority === 'High' ? 'border-red-200 text-red-500 bg-red-50' : 'border-slate-200 text-slate-400 bg-slate-50'}`}>
-                                                    {patient.priority}
-                                                </span>
-                                            </div>
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ID: {patient.id} • {patient.type}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-12">
-                                        <div className="text-right">
-                                            <div className="flex items-center gap-2 justify-end text-emerald-500 mb-1">
-                                                <UserCheck size={14} />
-                                                <span className="text-[10px] font-black uppercase tracking-widest">{patient.status}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 justify-end text-slate-300">
-                                                <Clock size={12} />
-                                                <span className="text-[10px] font-bold uppercase tracking-tighter">Waiting: {patient.time}</span>
-                                            </div>
-                                        </div>
-                                        <button className="px-8 py-4 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-3 shadow-lg group-hover:bg-emerald-500 transition-all">
-                                            Call Patient <ArrowRight size={16} />
-                                        </button>
-                                    </div>
+                            {loading ? (
+                                <div className="flex items-center justify-center h-64">
+                                    <Loader2 className="animate-spin text-slate-300" size={48} />
                                 </div>
-                            ))}
+                            ) : queue.length === 0 ? (
+                                <div className="bg-white border-2 border-slate-50 rounded-[2rem] p-12 text-center shadow-sm">
+                                    <Users className="mx-auto text-slate-200 mb-4" size={48} />
+                                    <p className="text-lg font-black text-slate-400 uppercase tracking-widest">Queue is Empty</p>
+                                    <p className="text-sm text-slate-300 mt-2">No patients waiting for consultation</p>
+                                </div>
+                            ) : (
+                                queue.map((patient, i) => {
+                                    const waitTime = getTimeAgo(patient.appointment_time);
+                                    const isHighPriority = waitTime.includes('60') || waitTime.includes('45');
+
+                                    return (
+                                        <div key={patient.id} className="bg-white border-2 border-slate-50 rounded-[2rem] p-6 flex items-center justify-between hover:border-black transition-all group shadow-sm">
+                                            <div className="flex items-center gap-8">
+                                                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex flex-col items-center justify-center border border-slate-100">
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase leading-none mb-1">Rank</span>
+                                                    <span className="text-xl font-black">{i + 1}</span>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-3">
+                                                        <h4 className="text-xl font-black uppercase tracking-tight">{patient.profiles?.full_name || 'Unknown'}</h4>
+                                                        <span className={`text-[8px] font-black px-2 py-0.5 rounded border ${isHighPriority ? 'border-red-200 text-red-500 bg-red-50' : 'border-slate-200 text-slate-400 bg-slate-50'}`}>
+                                                            {isHighPriority ? 'High' : 'Normal'}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                        {patient.appointment_type || 'General'} • {formatTime(patient.appointment_time)}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-12">
+                                                <div className="text-right">
+                                                    <div className="flex items-center gap-2 justify-end text-emerald-500 mb-1">
+                                                        <UserCheck size={14} />
+                                                        <span className="text-[10px] font-black uppercase tracking-widest">{patient.status}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 justify-end text-slate-300">
+                                                        <Clock size={12} />
+                                                        <span className="text-[10px] font-bold uppercase tracking-tighter">Waiting: {waitTime}</span>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleCallPatient(patient)}
+                                                    disabled={callingPatientId === patient.id}
+                                                    className="px-8 py-4 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-3 shadow-lg group-hover:bg-emerald-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {callingPatientId === patient.id ? 'Calling...' : 'Call Patient'}
+                                                    <ArrowRight size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
                         </div>
                     </div>
                 </main>

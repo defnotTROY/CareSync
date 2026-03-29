@@ -4,11 +4,13 @@ import { AnimatePresence } from 'framer-motion';
 
 // Providers & Protections
 import { AuthProvider } from './lib/AuthContext.jsx';
+import { ToastProvider } from './lib/ToastContext.jsx';
 import ProtectedRoute from './components/layout/ProtectedRoute.jsx';
 
 // Layout components (kept eager — used on landing page)
 import Navbar from "./components/layout/Navbar.jsx";
 import Footer from "./components/layout/Footer.jsx";
+import ChatBot from "./components/ChatBot.jsx";
 
 // Home components (kept eager — used on landing page)
 import Hero from "./components/home/Hero.jsx";
@@ -37,6 +39,7 @@ const DoctorDashboard = lazy(() => import("./pages/doctor/DoctorDashboard.jsx"))
 const DoctorQueue = lazy(() => import("./pages/doctor/DoctorQueue.jsx"));
 const Consultation = lazy(() => import("./pages/doctor/Consultation.jsx"));
 const DoctorRecords = lazy(() => import("./pages/doctor/DoctorRecords.jsx"));
+const DoctorSettings = lazy(() => import("./pages/doctor/DoctorSettings.jsx"));
 
 // Admin Pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.jsx"));
@@ -108,6 +111,7 @@ function AnimatedRoutes() {
         <Route path="/doctor/queue" element={<ProtectedRoute allowedRoles={['doctor', 'admin']}><DoctorQueue /></ProtectedRoute>} />
         <Route path="/doctor/consultation" element={<ProtectedRoute allowedRoles={['doctor', 'admin']}><Consultation /></ProtectedRoute>} />
         <Route path="/doctor/records" element={<ProtectedRoute allowedRoles={['doctor', 'admin']}><DoctorRecords /></ProtectedRoute>} />
+        <Route path="/doctor/settings" element={<ProtectedRoute allowedRoles={['doctor', 'admin']}><DoctorSettings /></ProtectedRoute>} />
 
         {/* Admin Terminal Routes */}
         <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
@@ -123,13 +127,16 @@ function AnimatedRoutes() {
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <div className="w-full min-h-screen bg-white text-slate-900">
-          <Suspense fallback={<PageLoader />}>
-            <AnimatedRoutes />
-          </Suspense>
-        </div>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <div className="w-full min-h-screen bg-white text-slate-900">
+            <Suspense fallback={<PageLoader />}>
+              <AnimatedRoutes />
+            </Suspense>
+            <ChatBot />
+          </div>
+        </AuthProvider>
+      </ToastProvider>
     </Router>
   );
 }

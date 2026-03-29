@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { Eye, EyeOff, ShieldCheck, Check, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../supabaseClient'; // Ensure this file exists with your keys
+import { supabase } from '../supabaseClient';
+import { useToast } from '../lib/ToastContext.jsx';
 import PageTransition from "../components/layout/PageTransition.jsx";
 import '../styles/client-portal.css';
 import './SignUp.css';
 
 export default function SignUp() {
     const navigate = useNavigate();
+    const toast = useToast();
 
     // UI States
     const [showPassword, setShowPassword] = useState(false);
@@ -53,8 +55,8 @@ export default function SignUp() {
             setErrorMsg(error.message);
             setLoading(false);
         } else {
-            // Success! 
-            alert("Registration successful! Please check your email for a confirmation link.");
+            // Success!
+            toast.success("Registration successful! Please check your email for a confirmation link.");
             navigate('/login');
         }
     };

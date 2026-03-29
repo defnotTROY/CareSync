@@ -198,3 +198,55 @@
         opacity: 1;
     }
 }
+
+/* ---- Live QR Scanner ---- */
+.checkin-scanner-body-live {
+    @apply p-8 flex flex-col items-center justify-center space-y-6 min-h-[420px];
+}
+
+.checkin-qr-viewport {
+    @apply w-full max-w-sm aspect-square rounded-[2rem] overflow-hidden
+    border-4 border-slate-200 bg-black relative;
+}
+
+.checkin-qr-reader {
+    @apply w-full h-full;
+}
+
+/* Override html5-qrcode internal styles for cleaner look */
+.checkin-qr-reader video {
+    border-radius: 1.5rem !important;
+    object-fit: cover !important;
+}
+
+.checkin-qr-reader #qr-shaded-region {
+    border-radius: 0.75rem !important;
+}
+
+.checkin-qr-loading {
+    @apply absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-10;
+}
+
+/* ---- Scan Result States ---- */
+.checkin-scan-found {
+    @apply flex flex-col items-center justify-center py-12 text-center;
+}
+
+.checkin-scan-found-icon {
+    @apply w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center
+    mx-auto mb-6 shadow-lg shadow-emerald-500/30;
+    animation: checkinPulse 0.6s ease-out;
+}
+
+.checkin-scan-found-title {
+    @apply text-xl font-black text-emerald-900 uppercase tracking-tight;
+}
+
+.checkin-scan-found-text {
+    @apply text-emerald-700 font-medium text-sm mt-2 max-w-xs;
+}
+
+.checkin-scan-error {
+    @apply flex flex-col items-center justify-center py-12 text-center;
+}
+

@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la .env* plus i already have env its env.local)"
+    ]
+  }
+}

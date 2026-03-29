@@ -118,3 +118,32 @@
 .summary-total-value {
     @apply text-2xl font-black;
 }
+
+/* ---- QR Code Section (Confirmation Screen) ---- */
+.qr-code-section {
+    @apply relative z-10 border-t border-b border-slate-100 py-8;
+}
+
+.qr-code-container {
+    @apply flex flex-col items-center gap-4;
+}
+
+.qr-code-badge {
+    @apply flex items-center gap-1.5 px-3 py-1 bg-slate-100 rounded-full
+    text-[10px] font-black uppercase tracking-widest text-slate-500;
+}
+
+.qr-code-image {
+    @apply w-52 h-52 rounded-2xl border-2 border-slate-100 shadow-sm;
+}
+
+.qr-code-instruction {
+    @apply text-xs text-slate-500 font-medium text-center max-w-[280px] leading-relaxed;
+}
+
+.qr-download-btn {
+    @apply flex items-center gap-2 px-5 py-2.5 bg-black text-white text-xs font-bold
+    uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all
+    shadow-lg shadow-black/10;
+}
+
