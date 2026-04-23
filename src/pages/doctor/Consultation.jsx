@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, Users, ClipboardList, FileText,
-    Settings, LogOut, Bell, Stethoscope, Eye,
-    CalendarClock, History, CheckSquare, Save, X, Loader2, Check
+    LogOut, Stethoscope, Eye, History, CheckSquare,
+    Save, Loader2, Check, Clock
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase.js';
 import { useAuth } from '../../lib/AuthContext.jsx';
@@ -16,11 +16,14 @@ export default function Consultation() {
     const { user, signOut } = useAuth();
     const toast = useToast();
 
+    // The appointment data passed from the Doctor Queue
     const appointment = location.state?.appointment;
+
     const [loading, setLoading] = useState(true);
     const [patientData, setPatientData] = useState(null);
     const [saving, setSaving] = useState(false);
 
+    // Initial state matching your database schema
     const [formData, setFormData] = useState({
         visual_acuity_le: '',
         visual_acuity_re: '',
@@ -85,35 +88,38 @@ export default function Consultation() {
     };
 
     const handleSubmit = async () => {
-        if (!appointment || !user) return;
+        if (!appointment || !user || !patientData) {
+            toast.error("Missing session data");
+            return;
+        }
 
         try {
             setSaving(true);
 
+            // 1. Prepare data for the 'consultations' table
             const consultationData = {
                 appointment_id: appointment.id,
                 doctor_id: user.id,
                 patient_id: appointment.user_id,
                 ...formData,
-                // Ensure empty strings are stored as nulls for cleaner DB records
-                visual_acuity_le: formData.visual_acuity_le || null,
-                visual_acuity_re: formData.visual_acuity_re || null,
-                color_perception: formData.color_perception || null,
-                diagnosis: formData.diagnosis || null,
+                // Ensure empty date strings are sent as null to avoid DB errors
                 follow_up_date: formData.follow_up_date || null,
             };
 
-            // 1. Insert Consultation Record
+            // 2. Insert into database
             const { error: consultError } = await supabase
                 .from('consultations')
                 .insert([consultationData]);
 
             if (consultError) throw consultError;
 
-            // 2. Update Appointment Status to COMPLETED
+            // 3. Update appointment status to COMPLETED
             const { error: apptError } = await supabase
                 .from('appointments')
-                .update({ status: 'COMPLETED' })
+                .update({
+                    status: 'COMPLETED',
+                    updated_at: new Date().toISOString()
+                })
                 .eq('id', appointment.id);
 
             if (apptError) throw apptError;
@@ -121,16 +127,11 @@ export default function Consultation() {
             toast.success('Consultation Finalized Successfully');
             navigate('/doctor/queue');
         } catch (err) {
-            console.error('Error saving consultation:', err);
-            toast.error('Submission failed: ' + err.message);
+            console.error('Submission error:', err);
+            toast.error('Failed to save: ' + err.message);
         } finally {
             setSaving(false);
         }
-    };
-
-    const handleLogout = async () => {
-        if (signOut) await signOut();
-        navigate('/login');
     };
 
     const calculateAge = (birthDate) => {
@@ -151,8 +152,8 @@ export default function Consultation() {
                     <div className="space-y-10">
                         <div className="flex items-center gap-3 px-2">
                             <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center font-bold text-white text-xl">M</div>
-                            <div className="flex flex-col text-white font-black uppercase tracking-tight leading-none">
-                                <span className="text-lg">CareSync</span>
+                            <div className="text-white font-black uppercase tracking-tight">
+                                <span className="text-lg block">CareSync</span>
                                 <span className="text-slate-500 text-[10px] tracking-widest mt-1">Doctor Terminal</span>
                             </div>
                         </div>
@@ -169,19 +170,15 @@ export default function Consultation() {
                         </nav>
                     </div>
 
-                    <div className="pt-6 border-t border-white/10 space-y-2 px-2">
-                        <div className="flex items-center justify-between pt-2">
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 bg-slate-800 rounded-full flex items-center justify-center text-[10px] text-white font-bold">D</div>
-                                <div className="flex flex-col text-white">
-                                    <span className="text-[11px] font-bold uppercase leading-none">Doctor</span>
-                                    <span className="text-slate-500 text-[8px] font-bold uppercase tracking-widest mt-1">Active Session</span>
-                                </div>
+                    <div className="pt-6 border-t border-white/10 flex items-center justify-between px-2 text-white">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                            <div className="w-9 h-9 bg-slate-800 rounded-full flex items-center justify-center font-bold text-xs shrink-0">D</div>
+                            <div className="flex flex-col truncate">
+                                <span className="text-[11px] font-bold uppercase truncate">In Session</span>
+                                <span className="text-slate-500 text-[8px] font-bold uppercase tracking-widest">Medical Staff</span>
                             </div>
-                            <button onClick={handleLogout} className="p-2 text-slate-500 hover:text-red-400 transition-all">
-                                <LogOut size={18} />
-                            </button>
                         </div>
+                        <button onClick={() => signOut()} className="text-slate-500 hover:text-red-400 transition-colors"><LogOut size={18} /></button>
                     </div>
                 </aside>
 
@@ -230,7 +227,7 @@ export default function Consultation() {
                                 </div>
                             </div>
 
-                            {/* MEDICAL TESTS */}
+                            {/* CLINICAL TESTS */}
                             <section className="space-y-8">
                                 <div className="flex items-center gap-4">
                                     <Stethoscope className="text-emerald-500" size={24} />
@@ -267,11 +264,11 @@ export default function Consultation() {
                                     </div>
 
                                     <div className="col-span-6 bg-white border border-slate-100 p-8 rounded-[2rem] space-y-4">
-                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Ishihara Color Test</label>
+                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Ishihara Color Perception</label>
                                         <select
                                             value={formData.color_perception}
                                             onChange={(e) => handleInputChange('color_perception', e.target.value)}
-                                            className="w-full p-5 bg-slate-50 border-2 border-transparent focus:border-black rounded-2xl font-bold outline-none appearance-none"
+                                            className="w-full p-5 bg-slate-50 border-2 border-transparent focus:border-black rounded-2xl font-bold outline-none"
                                         >
                                             <option value="">Select Perception</option>
                                             <option value="Normal">Normal</option>
@@ -284,14 +281,14 @@ export default function Consultation() {
                                         <div className="flex gap-4">
                                             <input
                                                 type="text"
-                                                placeholder="L"
+                                                placeholder="Left"
                                                 value={formData.auditory_left}
                                                 onChange={(e) => handleInputChange('auditory_left', e.target.value)}
                                                 className="w-1/2 p-5 bg-slate-50 border-2 border-transparent focus:border-black rounded-2xl font-bold outline-none"
                                             />
                                             <input
                                                 type="text"
-                                                placeholder="R"
+                                                placeholder="Right"
                                                 value={formData.auditory_right}
                                                 onChange={(e) => handleInputChange('auditory_right', e.target.value)}
                                                 className="w-1/2 p-5 bg-slate-50 border-2 border-transparent focus:border-black rounded-2xl font-bold outline-none"
@@ -311,9 +308,9 @@ export default function Consultation() {
                                 <div className="grid grid-cols-12 gap-6">
                                     <div className="col-span-5 bg-white border border-slate-100 p-8 rounded-[2rem] space-y-3">
                                         {[
-                                            { label: 'Upper Extremities (Normal)', field: 'extremities_upper' },
-                                            { label: 'Lower Extremities (Normal)', field: 'extremities_lower' },
-                                            { label: 'Full Range of Motion', field: 'range_of_motion' },
+                                            { label: 'Upper Extremities', field: 'extremities_upper' },
+                                            { label: 'Lower Extremities', field: 'extremities_lower' },
+                                            { label: 'Range of Motion', field: 'range_of_motion' },
                                             { label: 'Steady Gait', field: 'gait_analysis' }
                                         ].map((item) => (
                                             <button
@@ -334,62 +331,60 @@ export default function Consultation() {
                                             value={formData.physical_remarks}
                                             onChange={(e) => handleInputChange('physical_remarks', e.target.value)}
                                             placeholder="Physical examination notes and findings..."
-                                            className="w-full h-full min-h-[200px] bg-slate-50 border-2 border-transparent focus:border-black rounded-2xl p-6 font-bold text-sm transition-all outline-none resize-none"
+                                            className="w-full h-full min-h-[200px] bg-slate-50 border-2 border-transparent focus:border-black rounded-2xl p-6 font-bold text-sm outline-none resize-none"
                                         />
                                     </div>
                                 </div>
                             </section>
 
-                            {/* DIAGNOSIS & SUBMIT */}
-                            <section className="space-y-8">
-                                <div className="bg-white border border-slate-100 p-10 rounded-[3rem] space-y-8">
-                                    <div className="grid grid-cols-2 gap-8">
-                                        <div className="space-y-3">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Clinical Diagnosis</label>
-                                            <input
-                                                type="text"
-                                                value={formData.diagnosis}
-                                                onChange={(e) => handleInputChange('diagnosis', e.target.value)}
-                                                className="w-full p-5 bg-slate-50 border-2 border-transparent focus:border-black rounded-2xl font-bold outline-none"
-                                            />
-                                        </div>
-                                        <div className="space-y-3">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Medications / Prescriptions</label>
-                                            <textarea
-                                                value={formData.medications}
-                                                onChange={(e) => handleInputChange('medications', e.target.value)}
-                                                className="w-full p-5 bg-slate-50 border-2 border-transparent focus:border-black rounded-2xl font-bold outline-none h-16 resize-none"
-                                            />
-                                        </div>
+                            {/* SUBMIT SECTION */}
+                            <section className="bg-white border border-slate-100 p-10 rounded-[3rem] space-y-8 shadow-sm">
+                                <div className="grid grid-cols-2 gap-8">
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Clinical Diagnosis</label>
+                                        <input
+                                            type="text"
+                                            value={formData.diagnosis}
+                                            onChange={(e) => handleInputChange('diagnosis', e.target.value)}
+                                            className="w-full p-5 bg-slate-50 border-2 border-transparent focus:border-black rounded-2xl font-bold outline-none"
+                                        />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Medications / Plan</label>
+                                        <textarea
+                                            value={formData.medications}
+                                            onChange={(e) => handleInputChange('medications', e.target.value)}
+                                            className="w-full p-5 bg-slate-50 border-2 border-transparent focus:border-black rounded-2xl font-bold outline-none h-16 resize-none"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="pt-8 border-t border-slate-50 flex items-center justify-between">
+                                    <div className="flex flex-col">
+                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Follow-up Date</label>
+                                        <input
+                                            type="date"
+                                            value={formData.follow_up_date}
+                                            onChange={(e) => handleInputChange('follow_up_date', e.target.value)}
+                                            className="mt-2 p-4 bg-slate-50 rounded-xl font-bold outline-none cursor-pointer"
+                                        />
                                     </div>
 
-                                    <div className="pt-8 border-t border-slate-50 flex items-center justify-between">
-                                        <div className="flex flex-col">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Follow-up Date</label>
-                                            <input
-                                                type="date"
-                                                value={formData.follow_up_date}
-                                                onChange={(e) => handleInputChange('follow_up_date', e.target.value)}
-                                                className="mt-2 p-4 bg-slate-50 rounded-xl font-bold outline-none border-none"
-                                            />
-                                        </div>
-
-                                        <div className="flex gap-4">
-                                            <button
-                                                onClick={() => navigate('/doctor/queue')}
-                                                className="px-10 py-5 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-200 transition-all"
-                                            >
-                                                Discard
-                                            </button>
-                                            <button
-                                                onClick={handleSubmit}
-                                                disabled={saving}
-                                                className="px-12 py-5 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-3 hover:bg-emerald-600 transition-all shadow-xl disabled:opacity-50"
-                                            >
-                                                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                                                {saving ? 'Processing...' : 'Finalize Consultation'}
-                                            </button>
-                                        </div>
+                                    <div className="flex gap-4">
+                                        <button
+                                            onClick={() => navigate('/doctor/queue')}
+                                            className="px-10 py-5 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-200 transition-all"
+                                        >
+                                            Discard
+                                        </button>
+                                        <button
+                                            onClick={handleSubmit}
+                                            disabled={saving}
+                                            className="px-12 py-5 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-3 hover:bg-emerald-600 transition-all shadow-xl disabled:opacity-50"
+                                        >
+                                            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                            {saving ? 'Saving...' : 'Finalize Consultation'}
+                                        </button>
                                     </div>
                                 </div>
                             </section>

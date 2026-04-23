@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, Users, ClipboardList, FileText,
     Settings, LogOut, Bell, UserCheck, Clock,
-    ArrowRight, Activity, Loader2
+    ArrowRight, Activity, Loader2, Calendar as CalendarIcon
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase.js';
 import { useAuth } from '../../lib/AuthContext.jsx';
@@ -32,18 +32,15 @@ export default function DoctorQueue() {
             fetchDoctorInfo();
             fetchQueue();
 
-            // Broad listener to update the hallway instantly when staff checks someone in
             const channel = supabase
-                .channel('doctor-hallway-final')
+                .channel('doctor-hallway-v8')
                 .on('postgres_changes',
                     { event: '*', schema: 'public', table: 'appointments' },
                     () => fetchQueue()
                 )
                 .subscribe();
 
-            return () => {
-                supabase.removeChannel(channel);
-            };
+            return () => supabase.removeChannel(channel);
         }
     }, [user]);
 
@@ -56,32 +53,43 @@ export default function DoctorQueue() {
 
     async function fetchQueue() {
         try {
-            // Only show the spinner on first load
             if (!initialLoadDone.current) setLoading(true);
 
-            // CORRECT DATE LOGIC: Force the local date (YYYY-MM-DD)
+            // --- 1 WEEK DATE RANGE LOGIC ---
             const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const todayStr = `${year}-${month}-${day}`;
 
-            console.log("Searching for date:", todayStr); // Check this in your F12 console!
+            // Start: Today (YYYY-MM-DD)
+            const todayStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000))
+                .toISOString()
+                .split('T')[0];
+
+            // End: 7 Days from now
+            const nextWeek = new Date();
+            nextWeek.setDate(now.getDate() + 7);
+            const endStr = new Date(nextWeek.getTime() - (nextWeek.getTimezoneOffset() * 60000))
+                .toISOString()
+                .split('T')[0];
+
+            console.log(`Syncing Hallway: ${todayStr} to ${endStr}`);
 
             const { data, error } = await supabase
                 .from('appointments')
                 .select(`
                     *,
-                    profiles:user_id (full_name, age, gender)
+                    profiles!user_id (
+                        id, 
+                        full_name
+                    )
                 `)
-                .eq('appointment_date', todayStr)
-                // The doctor sees everyone scheduled for today who isn't COMPLETED or CANCELLED
+                // Use range filters to get the next 7 days
+                .gte('appointment_date', todayStr)
+                .lte('appointment_date', endStr)
                 .in('status', ['CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS'])
+                .order('appointment_date', { ascending: true })
                 .order('appointment_time', { ascending: true });
 
             if (error) throw error;
 
-            console.log("Patients Found:", data?.length);
             setQueue(data || []);
         } catch (err) {
             console.error('Queue fetch error:', err.message);
@@ -114,6 +122,11 @@ export default function DoctorQueue() {
         return `${hour % 12 || 12}:${m} ${hour >= 12 ? 'PM' : 'AM'}`;
     };
 
+    const formatDateShort = (dateStr) => {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    };
+
     return (
         <PageTransition>
             <div className="flex min-h-screen bg-[#F8FAFC]">
@@ -121,88 +134,84 @@ export default function DoctorQueue() {
                     <div className="space-y-10">
                         <div className="flex items-center gap-3 px-2">
                             <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center font-bold text-white text-xl">M</div>
-                            <div className="text-white font-black uppercase tracking-tight leading-none">
-                                <span className="text-lg">CareSync</span>
-                                <span className="block text-slate-500 text-[10px] tracking-widest mt-1">Doctor Terminal</span>
+                            <div className="text-white font-black uppercase tracking-tight">
+                                <span className="text-lg block">CareSync</span>
+                                <span className="text-slate-500 text-[10px] tracking-widest mt-1">Doctor Terminal</span>
                             </div>
                         </div>
                         <nav className="space-y-1">
                             {navItems.map((item) => (
-                                <Link key={item.name} to={item.path} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all ${location.pathname === item.path ? 'bg-white text-black font-bold shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+                                <Link key={item.name} to={item.path} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all ${location.pathname === item.path ? 'bg-white text-black font-bold' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
                                     <item.icon size={20} />
                                     <span className="text-sm">{item.name}</span>
                                 </Link>
                             ))}
                         </nav>
                     </div>
-                    <div className="pt-6 border-t border-white/10 flex items-center justify-between px-2">
+                    <div className="pt-6 border-t border-white/10 flex items-center justify-between px-2 text-white">
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 bg-slate-800 rounded-full flex items-center justify-center text-white font-bold">{doctorName[0]}</div>
-                            <div className="flex flex-col">
-                                <span className="text-white text-[11px] font-bold uppercase leading-none">{doctorName}</span>
-                                <span className="text-slate-500 text-[8px] font-bold uppercase mt-1">Medical Staff</span>
-                            </div>
+                            <div className="w-9 h-9 bg-slate-800 rounded-full flex items-center justify-center font-bold text-xs">{doctorName[0]}</div>
+                            <span className="text-[11px] font-bold uppercase truncate w-24">Dr. {doctorName}</span>
                         </div>
                         <button onClick={handleLogout} className="text-slate-500 hover:text-red-400"><LogOut size={18} /></button>
                     </div>
                 </aside>
 
                 <main className="flex-1 p-12 space-y-10 overflow-y-auto">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h1 className="text-5xl font-black text-slate-950 uppercase tracking-tighter">Hallway Queue</h1>
-                            <p className="text-slate-500 font-medium uppercase text-[10px] tracking-[0.2em]">Real-time patient hallway management</p>
+                    <header className="flex justify-between items-center">
+                        <div className="space-y-1">
+                            <h1 className="text-5xl font-black text-slate-950 uppercase tracking-tighter leading-none">Weekly Queue</h1>
+                            <p className="text-slate-500 font-medium uppercase text-[10px] tracking-[0.2em]">Next 7 Days of Appointments</p>
                         </div>
                         <div className="bg-white border-2 border-slate-50 px-6 py-4 rounded-2xl flex items-center gap-4 shadow-sm">
                             <Activity className="text-emerald-500" size={20} />
-                            <p className="text-sm font-black uppercase tracking-widest">{queue.length} Total Patients</p>
+                            <p className="text-sm font-black uppercase">{queue.length} Total</p>
                         </div>
-                    </div>
+                    </header>
 
                     <div className="space-y-4">
                         {loading ? (
                             <div className="flex flex-col items-center justify-center h-64"><Loader2 className="animate-spin text-emerald-500" size={48} /></div>
                         ) : queue.length === 0 ? (
                             <div className="bg-white border-2 border-slate-50 rounded-[2rem] p-20 text-center shadow-sm">
-                                <p className="text-lg font-black text-slate-400 uppercase tracking-widest">Hallway is Empty</p>
-                                <p className="text-sm text-slate-300 mt-2">No patients scheduled for today ({new Date().toLocaleDateString()}).</p>
+                                <p className="text-lg font-black text-slate-400 uppercase tracking-widest">No Appointments</p>
+                                <p className="text-sm text-slate-300 mt-2">The hallway is clear for the next 7 days.</p>
                             </div>
                         ) : (
                             queue.map((patient, i) => {
-                                const isCheckedIn = patient.status === 'CHECKED_IN';
-                                const isWithDoctor = patient.status === 'IN_PROGRESS';
-
+                                const isHere = patient.status === 'CHECKED_IN';
+                                const isBusy = patient.status === 'IN_PROGRESS';
                                 return (
-                                    <div key={patient.id} className={`bg-white border-2 rounded-[2rem] p-6 flex items-center justify-between hover:border-black transition-all group shadow-sm ${isCheckedIn || isWithDoctor ? 'border-emerald-100 bg-emerald-50/20' : 'border-slate-50'}`}>
+                                    <div key={patient.id} className={`bg-white border-2 rounded-[2rem] p-6 flex items-center justify-between hover:border-black transition-all group shadow-sm ${isHere || isBusy ? 'border-emerald-100 bg-emerald-50/10' : 'border-slate-50'}`}>
                                         <div className="flex items-center gap-8">
-                                            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-black ${isCheckedIn || isWithDoctor ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>{i + 1}</div>
+                                            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-black shadow-lg ${isHere || isBusy ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>{i + 1}</div>
                                             <div>
                                                 <div className="flex items-center gap-3">
-                                                    <h4 className="text-xl font-black uppercase tracking-tight">{patient.profiles?.full_name}</h4>
-                                                    {isCheckedIn && <span className="text-[8px] font-black px-2 py-0.5 rounded border border-emerald-200 text-emerald-600 bg-emerald-100 uppercase">Present</span>}
-                                                    {isWithDoctor && <span className="text-[8px] font-black px-2 py-0.5 rounded border border-blue-200 text-blue-600 bg-blue-50 uppercase">Active</span>}
+                                                    <h4 className="text-xl font-black uppercase tracking-tight">{patient.profiles?.full_name || 'Patient'}</h4>
+                                                    {isHere && <span className="text-[8px] font-black px-2 py-0.5 rounded border border-emerald-200 text-emerald-600 bg-emerald-100 uppercase">Present</span>}
                                                 </div>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{patient.appointment_type} • {formatTime(patient.appointment_time)}</p>
+                                                <div className="flex items-center gap-3 mt-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                    <span className="flex items-center gap-1"><CalendarIcon size={12} /> {formatDateShort(patient.appointment_date)}</span>
+                                                    <span>•</span>
+                                                    <span className="flex items-center gap-1"><Clock size={12} /> {formatTime(patient.appointment_time)}</span>
+                                                </div>
                                             </div>
                                         </div>
+
                                         <div className="flex items-center gap-12">
                                             <div className="text-right">
-                                                <div className="flex items-center gap-2 justify-end mb-1 text-slate-400">
-                                                    <UserCheck size={14} className={isCheckedIn ? 'text-emerald-500' : ''} />
-                                                    <span className="text-[10px] font-black uppercase tracking-widest">{patient.status.replace('_', ' ')}</span>
+                                                <div className="flex items-center gap-2 justify-end mb-1 text-slate-400 font-black uppercase text-[10px] tracking-widest">
+                                                    <UserCheck size={14} className={isHere ? 'text-emerald-500' : 'text-slate-200'} />
+                                                    {patient.status.replace('_', ' ')}
                                                 </div>
-                                                <div className="flex items-center gap-2 justify-end text-slate-300">
-                                                    <Clock size={12} />
-                                                    <span className="text-[10px] font-bold uppercase">Today • {formatTime(patient.appointment_time)}</span>
-                                                </div>
+                                                <p className="text-[10px] font-bold text-slate-300 uppercase italic">ID: #{patient.id.slice(0, 8)}</p>
                                             </div>
                                             <button
                                                 onClick={() => handleCallPatient(patient)}
                                                 disabled={callingPatientId === patient.id}
-                                                className="px-8 py-4 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-3 hover:bg-emerald-500 transition-all disabled:opacity-50"
+                                                className="px-8 py-4 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-3 hover:bg-emerald-500 transition-all disabled:opacity-50 shadow-xl"
                                             >
-                                                {callingPatientId === patient.id ? 'Calling...' : 'Begin Session'}
-                                                <ArrowRight size={16} />
+                                                Begin Session <ArrowRight size={16} />
                                             </button>
                                         </div>
                                     </div>
