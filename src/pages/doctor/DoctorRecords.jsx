@@ -3,7 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, Users, ClipboardList, FileText,
     Settings, LogOut, Bell, Search, Filter,
-    ExternalLink, ChevronRight, Activity, Calendar, Loader2
+    ExternalLink, Activity, Calendar, Loader2,
+    X, CreditCard, Printer, Eye, Ear, CheckCircle
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase.js';
 import { useAuth } from '../../lib/AuthContext.jsx';
@@ -12,11 +13,14 @@ import PageTransition from "../../components/layout/PageTransition.jsx";
 export default function DoctorRecords() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, signOut } = useAuth();
 
     const [loading, setLoading] = useState(true);
     const [records, setRecords] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+
+    const [selectedRecord, setSelectedRecord] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const navItems = [
         { name: 'Dashboard', icon: LayoutDashboard, path: '/doctor/dashboard' },
@@ -35,38 +39,34 @@ export default function DoctorRecords() {
         try {
             setLoading(true);
 
-            // Fetch all consultations for this doctor
+            // FIX: Added !patient_id to tell Supabase exactly which link to use.
+            // REMOVED: date_of_birth and gender from the sub-select to prevent "column not found" errors.
             const { data: consultations, error } = await supabase
                 .from('consultations')
                 .select(`
                     *,
-                    profiles:patient_id (full_name, date_of_birth, gender),
-                    appointments (appointment_date, diagnosis)
+                    profiles!patient_id (
+                        full_name
+                    )
                 `)
                 .eq('doctor_id', user.id)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
 
-            // Group by patient
             const patientMap = new Map();
-            consultations?.forEach((c) => {
-                const patientId = c.patient_id;
-                const patient = c.profiles;
-
-                if (!patientMap.has(patientId)) {
-                    patientMap.set(patientId, {
-                        id: patientId,
-                        patient_id: patientId,
-                        name: patient?.full_name || 'Unknown',
-                        lastVisit: c.created_at,
-                        diagnosis: c.diagnosis || 'N/A',
-                        status: 'Active',
-                        icd_code: c.icd_code,
-                    });
-                }
-            });
-
+            if (consultations) {
+                consultations.forEach((c) => {
+                    const patientId = c.patient_id;
+                    if (!patientMap.has(patientId)) {
+                        patientMap.set(patientId, {
+                            ...c,
+                            name: c.profiles?.full_name || 'Name not found',
+                            lastVisit: c.created_at,
+                        });
+                    }
+                });
+            }
             setRecords(Array.from(patientMap.values()));
         } catch (err) {
             console.error('Records fetch error:', err.message);
@@ -75,27 +75,19 @@ export default function DoctorRecords() {
         }
     }
 
-    const handleLogout = () => navigate('/login');
+    const handleLogout = async () => {
+        if (signOut) await signOut();
+        navigate('/login');
+    };
 
     const formatDate = (dateStr) => {
         if (!dateStr) return 'N/A';
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    };
-
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'Clear': return 'bg-emerald-50 text-emerald-600';
-            case 'Stable': return 'bg-blue-50 text-blue-600';
-            case 'Follow-up Req': return 'bg-orange-50 text-orange-600';
-            case 'Recovering': return 'bg-purple-50 text-purple-600';
-            default: return 'bg-slate-50 text-slate-600';
-        }
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
     const filteredRecords = records.filter((r) =>
-        r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.id?.toLowerCase().includes(searchTerm.toLowerCase())
+        r.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -105,10 +97,10 @@ export default function DoctorRecords() {
                 <aside className="w-72 bg-black flex flex-col justify-between py-10 px-6 shrink-0 h-screen sticky top-0">
                     <div className="space-y-10">
                         <div className="flex items-center gap-3 px-2">
-                            <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center font-bold text-white text-xl shadow-lg shadow-emerald-500/20">M</div>
-                            <div className="flex flex-col text-white font-black uppercase tracking-tight leading-none">
-                                <span className="text-lg">CareSync</span>
-                                <span className="text-slate-500 text-[10px] tracking-widest mt-1">Doctor Terminal</span>
+                            <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center font-bold text-white text-xl shadow-lg">M</div>
+                            <div className="flex flex-col text-white font-black uppercase tracking-tight">
+                                <span className="text-lg leading-none">CareSync</span>
+                                <span className="text-slate-500 text-[10px] tracking-widest mt-1 leading-none">Doctor Terminal</span>
                             </div>
                         </div>
                         <nav className="space-y-1">
@@ -123,100 +115,56 @@ export default function DoctorRecords() {
                             })}
                         </nav>
                     </div>
-
-                    <div className="pt-6 border-t border-white/10 space-y-2 px-2">
-                        <Link
-                            to="/doctor/settings"
-                            className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${location.pathname === '/doctor/settings' ? 'bg-white text-black font-bold shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-                        >
-                            <Settings size={20} className={location.pathname === '/doctor/settings' ? 'text-black' : 'text-slate-400'} />
-                            <span className="text-sm">Settings</span>
-                        </Link>
-
-                        <div className="flex items-center justify-between pt-2">
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 bg-slate-800 rounded-full flex items-center justify-center text-[10px] text-white font-bold">D</div>
-                                <div className="flex flex-col text-white">
-                                    <span className="text-[11px] font-bold uppercase leading-none">Doctor</span>
-                                    <span className="text-slate-500 text-[8px] font-bold uppercase tracking-widest mt-1">Terminal</span>
-                                </div>
-                            </div>
-                            <button onClick={handleLogout} className="p-2 text-slate-500 hover:text-red-400 transition-all">
-                                <LogOut size={18} />
-                            </button>
-                        </div>
-                    </div>
+                    <button onClick={handleLogout} className="p-4 text-slate-500 hover:text-red-400 flex items-center gap-3 font-bold uppercase text-[10px] tracking-widest">
+                        <LogOut size={18} /> Logout
+                    </button>
                 </aside>
 
                 <main className="flex-1 p-12 space-y-10 overflow-y-auto">
-                    {/* HEADER */}
                     <div className="flex justify-between items-center">
                         <div className="space-y-1">
-                            <h1 className="text-5xl font-black text-slate-950 uppercase tracking-tighter">Medical Records</h1>
+                            <h1 className="text-5xl font-black text-slate-950 uppercase tracking-tighter leading-none">Medical Records</h1>
                             <p className="text-slate-500 font-medium uppercase text-[10px] tracking-[0.2em]">Patient health history & archives</p>
                         </div>
-                        <div className="flex gap-3">
-                            <div className="relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                <input
-                                    type="text"
-                                    placeholder="Search by name or ID..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-12 pr-6 py-4 bg-white border-2 border-slate-50 rounded-2xl focus:border-black outline-none w-64 text-sm font-bold shadow-sm transition-all"
-                                />
-                            </div>
-                            <button className="px-6 py-4 bg-white border-2 border-slate-50 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:border-black transition-all">
-                                <Filter size={16} /> Filter
-                            </button>
-                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search Patient Name..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-6 pr-6 py-4 bg-white border-2 border-slate-50 rounded-2xl focus:border-black outline-none w-72 text-sm font-bold shadow-sm transition-all"
+                        />
                     </div>
 
-                    {/* RECORDS TABLE */}
                     <div className="bg-white border-2 border-slate-50 rounded-[2.5rem] shadow-sm overflow-hidden">
                         {loading ? (
-                            <div className="flex items-center justify-center h-64">
-                                <Loader2 className="animate-spin text-slate-300" size={48} />
-                            </div>
-                        ) : records.length === 0 ? (
-                            <div className="p-12 text-center">
-                                <FileText className="mx-auto text-slate-200 mb-4" size={48} />
-                                <p className="text-lg font-black text-slate-400 uppercase tracking-widest">No Records Found</p>
-                                <p className="text-sm text-slate-300 mt-2">Patient records will appear here after consultations</p>
-                            </div>
+                            <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-emerald-500" size={48} /></div>
+                        ) : filteredRecords.length === 0 ? (
+                            <div className="p-12 text-center text-slate-300 font-bold uppercase tracking-widest">No Records Found</div>
                         ) : (
                             <table className="w-full text-left">
                                 <thead>
                                     <tr className="border-b border-slate-50">
-                                        <th className="px-10 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Patient ID</th>
                                         <th className="px-10 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Full Name</th>
-                                        <th className="px-10 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Last Diagnosis</th>
-                                        <th className="px-10 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Status</th>
-                                        <th className="px-10 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">View History</th>
+                                        <th className="px-10 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Diagnosis</th>
+                                        <th className="px-10 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Date</th>
+                                        <th className="px-10 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
                                     {filteredRecords.map((record) => (
-                                        <tr key={record.patient_id} className="group hover:bg-slate-50/50 transition-colors">
-                                            <td className="px-10 py-7 font-black text-sm text-slate-400 uppercase tracking-tighter">
-                                                {record.patient_id?.slice(0, 8) || 'N/A'}
-                                            </td>
+                                        <tr key={record.id} className="hover:bg-slate-50/50 transition-colors">
                                             <td className="px-10 py-7">
                                                 <p className="font-black text-slate-950 uppercase tracking-tight">{record.name}</p>
-                                                <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
-                                                    <Calendar size={10} /> {formatDate(record.lastVisit)}
-                                                </div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase">ID: #{record.patient_id.slice(0, 8)}</p>
                                             </td>
-                                            <td className="px-10 py-7 font-bold text-sm text-slate-900 uppercase italic">
+                                            <td className="px-10 py-7 font-bold text-sm text-slate-900 uppercase italic truncate max-w-[250px]">
                                                 {record.diagnosis}
                                             </td>
-                                            <td className="px-10 py-7">
-                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${getStatusColor(record.status)}`}>
-                                                    {record.status}
-                                                </span>
+                                            <td className="px-10 py-7 text-xs font-bold text-slate-500 uppercase">
+                                                {formatDate(record.lastVisit)}
                                             </td>
                                             <td className="px-10 py-7 text-right">
-                                                <button className="p-3 bg-slate-50 rounded-xl text-slate-400 hover:text-black hover:bg-white border border-transparent hover:border-slate-100 transition-all shadow-sm">
+                                                <button onClick={() => { setSelectedRecord(record); setIsModalOpen(true); }} className="p-3 bg-slate-100 rounded-xl hover:bg-black hover:text-white transition-all shadow-sm">
                                                     <ExternalLink size={16} />
                                                 </button>
                                             </td>
@@ -227,6 +175,70 @@ export default function DoctorRecords() {
                         )}
                     </div>
                 </main>
+
+                {/* MODAL SECTION */}
+                {isModalOpen && selectedRecord && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm">
+                        <div className="bg-white w-full max-w-5xl max-h-[92vh] rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col">
+                            <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-1">Official Medical Record</p>
+                                    <h2 className="text-4xl font-black uppercase tracking-tighter text-slate-950">{selectedRecord.name}</h2>
+                                    <p className="text-xs font-bold text-slate-400 mt-1">Visit Date: {formatDate(selectedRecord.lastVisit)}</p>
+                                </div>
+                                <button onClick={() => setIsModalOpen(false)} className="w-12 h-12 bg-white border border-slate-100 rounded-2xl flex items-center justify-center hover:bg-black hover:text-white transition-all"><X size={20} /></button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-12 space-y-12">
+                                {/* ASSESSMENT GRID */}
+                                <div className="grid grid-cols-2 gap-12">
+                                    <div className="space-y-4">
+                                        <h4 className="text-xs font-black uppercase text-slate-400 flex items-center gap-2"><Eye size={16} /> Vision</h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="p-5 bg-slate-50 rounded-2xl"><p className="text-[8px] font-black text-slate-400 uppercase">LE</p><p className="font-black text-slate-900">{selectedRecord.visual_acuity_le || 'N/A'}</p></div>
+                                            <div className="p-5 bg-slate-50 rounded-2xl"><p className="text-[8px] font-black text-slate-400 uppercase">RE</p><p className="font-black text-slate-900">{selectedRecord.visual_acuity_re || 'N/A'}</p></div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <h4 className="text-xs font-black uppercase text-slate-400 flex items-center gap-2"><Ear size={16} /> Auditory</h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="p-5 bg-slate-50 rounded-2xl"><p className="text-[8px] font-black text-slate-400 uppercase">Left</p><p className="font-black text-slate-900">{selectedRecord.auditory_left || 'N/A'}</p></div>
+                                            <div className="p-5 bg-slate-50 rounded-2xl"><p className="text-[8px] font-black text-slate-400 uppercase">Right</p><p className="font-black text-slate-900">{selectedRecord.auditory_right || 'N/A'}</p></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* PHYSICAL SECTION */}
+                                <div className="space-y-6">
+                                    <h4 className="text-xs font-black uppercase text-slate-400 flex items-center gap-2 border-b pb-2"><Activity size={16} /> Physical Exam</h4>
+                                    <div className="grid grid-cols-4 gap-4">
+                                        <div className={`p-4 rounded-xl border text-center ${selectedRecord.extremities_upper ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-300'}`}><span className="text-[10px] font-bold uppercase">Upper</span></div>
+                                        <div className={`p-4 rounded-xl border text-center ${selectedRecord.extremities_lower ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-300'}`}><span className="text-[10px] font-bold uppercase">Lower</span></div>
+                                        <div className={`p-4 rounded-xl border text-center ${selectedRecord.range_of_motion ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-300'}`}><span className="text-[10px] font-bold uppercase">ROM</span></div>
+                                        <div className={`p-4 rounded-xl border text-center ${selectedRecord.gait_analysis ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-300'}`}><span className="text-[10px] font-bold uppercase">Gait</span></div>
+                                    </div>
+                                    <div className="p-6 bg-slate-50 rounded-2xl">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase mb-2">Physician Remarks</p>
+                                        <p className="text-sm font-bold text-slate-800 italic leading-relaxed uppercase">{selectedRecord.physical_remarks || 'No remarks recorded'}</p>
+                                    </div>
+                                </div>
+                                {/* DIAGNOSIS */}
+                                <div className="grid grid-cols-2 gap-8 pt-8 border-t border-slate-50">
+                                    <div className="p-8 bg-black rounded-[2.5rem] text-white">
+                                        <p className="text-[10px] font-black uppercase text-slate-500 mb-3">Diagnosis</p>
+                                        <h5 className="text-2xl font-black uppercase tracking-tight italic underline decoration-emerald-500">{selectedRecord.diagnosis}</h5>
+                                        <p className="mt-4 text-[10px] font-bold text-slate-500">ICD-10: {selectedRecord.icd_code || 'N/A'}</p>
+                                    </div>
+                                    <div className="p-8 bg-slate-50 border-2 border-slate-100 rounded-[2.5rem]">
+                                        <p className="text-[10px] font-black uppercase text-slate-400 mb-3">Medications & Plan</p>
+                                        <p className="text-sm font-bold text-slate-800 uppercase">{selectedRecord.medications}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="p-8 border-t bg-slate-50/50 flex justify-end">
+                                <button onClick={() => window.print()} className="px-10 py-5 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-3 hover:bg-emerald-600 transition-all shadow-xl"><Printer size={18} /> Print Record</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </PageTransition>
     );

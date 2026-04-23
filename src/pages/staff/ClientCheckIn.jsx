@@ -52,10 +52,8 @@ export default function ClientCheckIn() {
     // --- DERIVED STATE ---
     const allProceduresDone = Object.values(procedures).every(Boolean);
 
-    // --- FETCH STAFF IDENTITY ON MOUNT ---
+    // --- FETCH STAFF IDENTITY ---
     useEffect(() => {
-        const controller = new AbortController();
-
         async function fetchStaffInfo() {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
@@ -65,7 +63,6 @@ export default function ClientCheckIn() {
                         .select('full_name')
                         .eq('id', user.id)
                         .single();
-
                     setStaffName(profile?.full_name || "Staff Member");
                 }
             } catch (err) {
@@ -74,12 +71,10 @@ export default function ClientCheckIn() {
                 setStaffLoading(false);
             }
         }
-
         fetchStaffInfo();
-        return () => controller.abort();
     }, []);
 
-    // --- QR SCANNER LIFECYCLE ---
+    // --- QR SCANNER HELPERS ---
     const stopScanner = useCallback(async () => {
         if (scannerRef.current) {
             try {
@@ -99,7 +94,6 @@ export default function ClientCheckIn() {
 
         try {
             const appointmentId = decodedText.trim();
-
             const { data: appointment, error: aptError } = await supabase
                 .from('appointments')
                 .select('*')
@@ -112,9 +106,11 @@ export default function ClientCheckIn() {
                 return;
             }
 
-            if (appointment.status === 'CHECKED_IN') {
+            // CHECK: If patient is already in the flow, don't re-check in
+            const activeStatuses = ['ON_CASHIER', 'CHECKED_IN', 'ON_DOCTOR'];
+            if (activeStatuses.includes(appointment.status)) {
                 setScanStatus('error');
-                setScanMessage('Patient is already checked in.');
+                setScanMessage('Patient is already in the queue or being served.');
                 return;
             }
 
@@ -129,7 +125,8 @@ export default function ClientCheckIn() {
                 profiles: profile || { full_name: 'Unknown Patient' }
             };
 
-            handleSelectAppointment(enrichedApt);
+            setSelectedApt(enrichedApt);
+            resetProcedures();
             setScanStatus('found');
             setScanMessage(`Found: ${enrichedApt.profiles.full_name}`);
 
@@ -148,7 +145,6 @@ export default function ClientCheckIn() {
             const timer = setTimeout(async () => {
                 const containerEl = document.getElementById(scannerContainerId);
                 if (!containerEl) return;
-
                 setScanLoading(true);
                 try {
                     const html5Qrcode = new Html5Qrcode(scannerContainerId);
@@ -168,9 +164,7 @@ export default function ClientCheckIn() {
             }, 300);
             return () => clearTimeout(timer);
         }
-        if (activeTab !== 'scan') {
-            stopScanner();
-        }
+        if (activeTab !== 'scan') stopScanner();
     }, [activeTab, scanStatus, handleQrScanSuccess, stopScanner]);
 
     // --- SEARCH LOGIC ---
@@ -181,51 +175,32 @@ export default function ClientCheckIn() {
         setSelectedApt(null);
         resetProcedures();
 
-        const q = searchQuery.trim().toLowerCase();
-
         try {
-            // Step 1: Find profiles whose full_name matches the query
-            const { data: matchedProfiles } = await supabase
-                .from('profiles')
-                .select('id, full_name')
-                .ilike('full_name', `%${q}%`);
-
-            const matchedUserIds = (matchedProfiles || []).map(p => p.id);
-
-            // Step 2: Fetch CONFIRMED appointments for today that match by name OR purpose
             const now = new Date();
             const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
+            const { data: matchedProfiles } = await supabase
+                .from('profiles')
+                .select('id, full_name')
+                .ilike('full_name', `%${searchQuery}%`);
+
+            const matchedUserIds = (matchedProfiles || []).map(p => p.id);
+
             let query = supabase
                 .from('appointments')
-                .select(`
-                    *,
-                    profiles:user_id (id, full_name)
-                `)
+                .select('*, profiles:user_id (id, full_name)')
                 .eq('status', 'CONFIRMED')
                 .eq('appointment_date', todayStr);
 
             if (matchedUserIds.length > 0) {
-                // Match by patient name OR by purpose
-                query = query.or(`user_id.in.(${matchedUserIds.join(',')}),purpose.ilike.%${q}%`);
+                query = query.or(`user_id.in.(${matchedUserIds.join(',')}),purpose.ilike.%${searchQuery}%`);
             } else {
-                // Fall back to purpose search only
-                query = query.ilike('purpose', `%${q}%`);
+                query = query.ilike('purpose', `%${searchQuery}%`);
             }
 
-            const { data: appointments, error: aptError } = await query
-                .order('appointment_time', { ascending: true });
-
-            if (aptError) throw aptError;
-
-            // Merge profile data for any appointments that came through purpose match
-            const profileMap = Object.fromEntries((matchedProfiles || []).map(p => [p.id, p]));
-            const enriched = (appointments || []).map(apt => ({
-                ...apt,
-                profiles: apt.profiles || profileMap[apt.user_id] || { full_name: 'Unknown Patient' }
-            }));
-
-            setSearchResults(enriched);
+            const { data: appointments, error } = await query.order('appointment_time', { ascending: true });
+            if (error) throw error;
+            setSearchResults(appointments || []);
         } catch (err) {
             console.error("Search error:", err);
             setSearchResults([]);
@@ -234,37 +209,25 @@ export default function ClientCheckIn() {
         }
     };
 
-    // --- SELECTION & PROCEDURES ---
     const handleSelectAppointment = (apt) => {
         setSelectedApt(apt);
         resetProcedures();
         setCheckInSuccess(false);
     };
 
-    const toggleProcedure = (key) => {
-        setProcedures(prev => ({ ...prev, [key]: !prev[key] }));
-    };
+    const toggleProcedure = (key) => setProcedures(prev => ({ ...prev, [key]: !prev[key] }));
+    const resetProcedures = () => setProcedures({ verifyIdentity: false, updateContact: false, consentSigned: false, collectPayment: false });
 
-    const resetProcedures = () => {
-        setProcedures({
-            verifyIdentity: false,
-            updateContact: false,
-            consentSigned: false,
-            collectPayment: false
-        });
-    };
-
-    // --- COMPLETE CHECK-IN (SYNCHRONIZED) ---
+    // --- UPDATED CHECK-IN ACTION (NOW MOVES TO CASHIER) ---
     const handleCompleteCheckIn = async () => {
         if (!selectedApt || !allProceduresDone) return;
-
         setIsCheckingIn(true);
         try {
             const { error } = await supabase
                 .from('appointments')
                 .update({
-                    status: 'CHECKED_IN'
-                    // Removed updated_at to prevent schema cache errors
+                    status: 'ON_CASHIER', // Updated to move to Cashier first
+                    updated_at: new Date().toISOString()
                 })
                 .eq('id', selectedApt.id);
 
@@ -273,12 +236,12 @@ export default function ClientCheckIn() {
             setCheckInSuccess(true);
             setSearchResults(prev => prev.filter(a => a.id !== selectedApt.id));
 
-            // Auto-reset UI after success
             setTimeout(() => {
                 setSelectedApt(null);
                 setCheckInSuccess(false);
                 resetProcedures();
-            }, 3000);
+                navigate('/staff/queue'); // Navigate to see them in the On Cashier list
+            }, 2500);
 
         } catch (err) {
             console.error("Check-in error:", err.message);
@@ -291,12 +254,6 @@ export default function ClientCheckIn() {
     const handleLogout = async () => {
         await supabase.auth.signOut();
         navigate('/login');
-    };
-
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString(undefined, {
-            month: 'short', day: 'numeric', year: 'numeric'
-        });
     };
 
     const navItems = [
@@ -319,7 +276,6 @@ export default function ClientCheckIn() {
     return (
         <PageTransition>
             <div className="staff-layout">
-                {/* SIDEBAR */}
                 <aside className="staff-sidebar">
                     <div className="staff-sidebar-top">
                         <div className="staff-brand">
@@ -342,7 +298,6 @@ export default function ClientCheckIn() {
                             ))}
                         </nav>
                     </div>
-
                     <div className="staff-sidebar-bottom">
                         <div className="staff-user-section">
                             <div className="staff-user-info">
@@ -357,7 +312,6 @@ export default function ClientCheckIn() {
                     </div>
                 </aside>
 
-                {/* MAIN CONTENT */}
                 <main className="staff-main-sm">
                     <div className="staff-header">
                         <div className="staff-header-info">
@@ -403,7 +357,7 @@ export default function ClientCheckIn() {
                                         <div className="checkin-search-bar flex gap-2">
                                             <input
                                                 type="text"
-                                                placeholder="Search patient name or purpose..."
+                                                placeholder="Search name or purpose..."
                                                 value={searchQuery}
                                                 onChange={(e) => setSearchQuery(e.target.value)}
                                                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -412,44 +366,29 @@ export default function ClientCheckIn() {
                                             <button
                                                 onClick={handleSearch}
                                                 disabled={searching || !searchQuery.trim()}
-                                                className="bg-black text-white px-6 rounded-xl font-bold disabled:opacity-50 flex items-center gap-2"
+                                                className="bg-black text-white px-6 rounded-xl font-bold disabled:opacity-50"
                                             >
                                                 {searching ? <Loader2 size={16} className="animate-spin" /> : 'Search'}
                                             </button>
                                         </div>
                                         <div className="checkin-results-area mt-6">
-                                            {searching ? (
-                                                <div className="flex items-center justify-center py-12">
-                                                    <Loader2 size={32} className="animate-spin text-slate-300" />
-                                                </div>
-                                            ) : searchResults.length > 0 ? (
-                                                searchResults.map((apt) => (
-                                                    <button
-                                                        key={apt.id}
-                                                        onClick={() => handleSelectAppointment(apt)}
-                                                        className={`w-full flex items-center justify-between p-4 border-2 rounded-2xl mb-3 transition-all ${
-                                                            selectedApt?.id === apt.id
-                                                                ? 'border-black bg-slate-50'
-                                                                : 'border-slate-100 hover:border-slate-300'
-                                                        }`}
-                                                    >
-                                                        <div className="text-left">
-                                                            <p className="font-bold text-slate-900">{apt.profiles?.full_name}</p>
-                                                            <p className="text-xs text-slate-400 mt-0.5">{apt.purpose} • {apt.appointment_time}</p>
-                                                        </div>
-                                                        <span className="text-[10px] font-black px-2 py-1 bg-emerald-100 text-emerald-600 rounded-full uppercase">Confirmed</span>
-                                                    </button>
-                                                ))
-                                            ) : hasSearched ? (
+                                            {searchResults.map((apt) => (
+                                                <button
+                                                    key={apt.id}
+                                                    onClick={() => handleSelectAppointment(apt)}
+                                                    className={`w-full flex items-center justify-between p-4 border-2 rounded-2xl mb-3 ${selectedApt?.id === apt.id ? 'border-black bg-slate-50' : 'border-slate-100 hover:border-slate-300'}`}
+                                                >
+                                                    <div className="text-left">
+                                                        <p className="font-bold text-slate-900">{apt.profiles?.full_name}</p>
+                                                        <p className="text-xs text-slate-400 mt-0.5">{apt.purpose} • {apt.appointment_time}</p>
+                                                    </div>
+                                                    <span className="text-[10px] font-black px-2 py-1 bg-emerald-100 text-emerald-600 rounded-full uppercase">Confirmed Today</span>
+                                                </button>
+                                            ))}
+                                            {hasSearched && searchResults.length === 0 && !searching && (
                                                 <div className="text-center py-12">
                                                     <AlertCircle size={32} className="text-slate-200 mx-auto mb-3" />
-                                                    <p className="text-slate-400 text-sm font-bold uppercase">No confirmed appointments found</p>
-                                                    <p className="text-slate-300 text-xs mt-1">Only today's CONFIRMED appointments appear here.</p>
-                                                </div>
-                                            ) : (
-                                                <div className="text-center py-12">
-                                                    <Search size={32} className="text-slate-200 mx-auto mb-3" />
-                                                    <p className="text-slate-400 text-sm">Search for a patient to begin check-in</p>
+                                                    <p className="text-slate-400 text-sm font-bold uppercase">No results found</p>
                                                 </div>
                                             )}
                                         </div>
@@ -460,7 +399,7 @@ export default function ClientCheckIn() {
 
                         <div className="col-span-5 space-y-6">
                             {selectedApt && !checkInSuccess && (
-                                <div className="checkin-patient-card bg-white p-6 rounded-[2rem] border-2 border-slate-50 shadow-sm">
+                                <div className="checkin-patient-card bg-white p-6 rounded-[2rem] border-2 border-slate-50 shadow-sm animate-in fade-in slide-in-from-right-4">
                                     <div className="flex justify-between items-start mb-6">
                                         <div className="flex gap-4 items-center">
                                             <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center font-bold">
@@ -494,16 +433,16 @@ export default function ClientCheckIn() {
                                         disabled={!allProceduresDone || isCheckingIn}
                                         className={`w-full mt-8 py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest transition-all ${allProceduresDone ? 'bg-black text-white shadow-xl hover:bg-emerald-500' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}`}
                                     >
-                                        {isCheckingIn ? "Syncing..." : "Complete Check-in"}
+                                        {isCheckingIn ? <Loader2 className="animate-spin mx-auto" size={16} /> : "Move to Cashier Queue"}
                                     </button>
                                 </div>
                             )}
 
                             {checkInSuccess && (
-                                <div className="checkin-success-card bg-emerald-500 text-white p-10 rounded-[2.5rem] text-center shadow-2xl">
+                                <div className="checkin-success-card bg-emerald-500 text-white p-10 rounded-[2.5rem] text-center shadow-2xl animate-in zoom-in">
                                     <Sparkles size={48} className="mx-auto mb-4" />
-                                    <h3 className="text-xl font-black uppercase italic">Checked In</h3>
-                                    <p className="text-emerald-100 text-sm mt-2">Patient has been added to the live queue.</p>
+                                    <h3 className="text-xl font-black uppercase italic">Handed to Cashier</h3>
+                                    <p className="text-emerald-100 text-sm mt-2">Patient has been moved to the Cashier Queue.</p>
                                 </div>
                             )}
                         </div>

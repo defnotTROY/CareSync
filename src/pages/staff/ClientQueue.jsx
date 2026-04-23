@@ -4,7 +4,7 @@ import {
     LayoutDashboard, UserCheck, Users, CalendarDays,
     CreditCard, FileText, Bell, LogOut, ArrowRight,
     CheckCircle2, AlertCircle, Settings, UserPlus, Loader2,
-    Clock, RefreshCw
+    Clock, RefreshCw, Wallet
 } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import PageTransition from "../../components/layout/PageTransition.jsx";
@@ -20,8 +20,8 @@ export default function ClientQueue() {
     const [staffLoading, setStaffLoading] = useState(true);
 
     // --- QUEUE DATA ---
-    const [waitingQueue, setWaitingQueue] = useState([]);
-    const [servingNow, setServingNow] = useState([]);
+    const [waitingQueue, setWaitingQueue] = useState([]); // ON_CASHIER
+    const [servingNow, setServingNow] = useState([]);   // CHECKED_IN / IN_PROGRESS
     const [loading, setLoading] = useState(true);
     const [actioningId, setActioningId] = useState(null);
 
@@ -47,16 +47,16 @@ export default function ClientQueue() {
         fetchStaffInfo();
     }, []);
 
-    // --- FETCH QUEUE DATA ---
+    // --- FETCH QUEUE DATA (UPDATED FOR ON_CASHIER) ---
     async function fetchQueueData() {
         try {
             setLoading(true);
 
-            // Fetch CHECKED_IN (waiting) and IN_PROGRESS (serving) appointments
+            // Fetch ON_CASHIER, CHECKED_IN, and IN_PROGRESS appointments
             const { data: appointments, error } = await supabase
                 .from('appointments')
                 .select('*')
-                .in('status', ['CHECKED_IN', 'IN_PROGRESS'])
+                .in('status', ['ON_CASHIER', 'CHECKED_IN', 'IN_PROGRESS'])
                 .order('created_at', { ascending: true });
 
             if (error) throw error;
@@ -67,21 +67,21 @@ export default function ClientQueue() {
                 return;
             }
 
-            // Fetch profiles for patient names
             const userIds = [...new Set(appointments.map(a => a.user_id).filter(Boolean))];
             const { data: profiles } = await supabase
                 .from('profiles')
                 .select('id, full_name')
                 .in('id', userIds);
 
-            // Merge profiles with appointments
             const merged = appointments.map(apt => ({
                 ...apt,
                 profiles: (profiles || []).find(p => String(p.id) === String(apt.user_id)) || { full_name: "Unknown Patient" }
             }));
 
-            setWaitingQueue(merged.filter(a => a.status === 'CHECKED_IN'));
-            setServingNow(merged.filter(a => a.status === 'IN_PROGRESS'));
+            // Logic: WaitingQueue are those paying (On Cashier)
+            setWaitingQueue(merged.filter(a => a.status === 'ON_CASHIER'));
+            // Serving/Active are those ready for doctor or currently with doctor
+            setServingNow(merged.filter(a => a.status === 'CHECKED_IN' || a.status === 'IN_PROGRESS'));
         } catch (err) {
             console.error("Queue fetch error:", err.message);
         } finally {
@@ -91,14 +91,11 @@ export default function ClientQueue() {
 
     useEffect(() => {
         fetchQueueData();
-
-        // Real-time subscription for queue changes
         const channel = supabase
             .channel('queue-updates')
             .on('postgres_changes',
                 { event: '*', schema: 'public', table: 'appointments' },
                 () => {
-                    // Refresh queue on any appointment change
                     setTimeout(() => fetchQueueData(), 300);
                 }
             )
@@ -109,25 +106,19 @@ export default function ClientQueue() {
         };
     }, []);
 
-    // --- CALL PATIENT (CHECKED_IN → IN_PROGRESS) ---
-    const handleCallPatient = async (id) => {
+    // --- MOVE TO DOCTOR (ON_CASHIER → CHECKED_IN) ---
+    const handleMoveToDoctor = async (id) => {
         setActioningId(id);
         try {
             const { error } = await supabase
                 .from('appointments')
-                .update({ status: 'IN_PROGRESS' })
+                .update({ status: 'CHECKED_IN' })
                 .eq('id', id);
 
             if (error) throw error;
-
-            // Optimistic update
-            const calledPatient = waitingQueue.find(a => a.id === id);
-            if (calledPatient) {
-                setWaitingQueue(prev => prev.filter(a => a.id !== id));
-                setServingNow(prev => [...prev, { ...calledPatient, status: 'IN_PROGRESS' }]);
-            }
+            fetchQueueData(); // Refresh list
         } catch (err) {
-            console.error("Call patient error:", err.message);
+            console.error("Movement error:", err.message);
         } finally {
             setActioningId(null);
         }
@@ -143,9 +134,7 @@ export default function ClientQueue() {
                 .eq('id', id);
 
             if (error) throw error;
-
-            // Optimistic update
-            setServingNow(prev => prev.filter(a => a.id !== id));
+            fetchQueueData();
         } catch (err) {
             console.error("Finish error:", err.message);
         } finally {
@@ -153,13 +142,11 @@ export default function ClientQueue() {
         }
     };
 
-    // --- LOGOUT ---
     const handleLogout = async () => {
         await supabase.auth.signOut();
         navigate('/login');
     };
 
-    // --- HELPERS ---
     const getWaitTime = (createdAt) => {
         const now = new Date();
         const created = new Date(createdAt);
@@ -169,8 +156,6 @@ export default function ClientQueue() {
         if (diffMins < 60) return `${diffMins}m`;
         return `${Math.floor(diffMins / 60)}h ${diffMins % 60}m`;
     };
-
-    const totalInQueue = waitingQueue.length + servingNow.length;
 
     const navItems = [
         { name: 'Dashboard', icon: LayoutDashboard, path: '/staff/dashboard' },
@@ -185,8 +170,6 @@ export default function ClientQueue() {
     return (
         <PageTransition>
             <div className="staff-layout">
-
-                {/* SIDEBAR */}
                 <aside className="staff-sidebar">
                     <div className="staff-sidebar-top">
                         <div className="staff-brand">
@@ -196,7 +179,6 @@ export default function ClientQueue() {
                                 <span className="staff-brand-sub">Staff Terminal</span>
                             </div>
                         </div>
-
                         <nav className="staff-nav">
                             {navItems.map((item) => {
                                 const isActive = location.pathname === item.path;
@@ -215,14 +197,6 @@ export default function ClientQueue() {
                     </div>
 
                     <div className="staff-sidebar-bottom">
-                        <Link
-                            to="/staff/settings"
-                            className={`staff-settings-link ${location.pathname === '/staff/settings' ? 'staff-settings-link--active' : ''}`}
-                        >
-                            <Settings size={20} className={location.pathname === '/staff/settings' ? 'staff-nav-icon--active' : 'staff-nav-icon'} />
-                            <span className="staff-nav-label">Settings</span>
-                        </Link>
-
                         <div className="staff-user-section">
                             <div className="staff-user-info">
                                 <div className="staff-user-avatar">{staffName ? staffName.charAt(0) : 'S'}</div>
@@ -231,45 +205,25 @@ export default function ClientQueue() {
                                     <span className="staff-user-role">Staff</span>
                                 </div>
                             </div>
-                            <button
-                                onClick={handleLogout}
-                                className="staff-logout-btn"
-                                title="Logout"
-                            >
-                                <LogOut size={18} />
-                            </button>
+                            <button onClick={handleLogout} className="staff-logout-btn" title="Logout"><LogOut size={18} /></button>
                         </div>
                     </div>
                 </aside>
 
                 <main className="staff-main">
-                    {/* Header */}
                     <div className="staff-header-end">
                         <div className="space-y-2">
                             <h1 className="staff-page-title">Live Queue</h1>
                             <div className="queue-header-stats">
                                 <span className="queue-active-count">
                                     <div className="staff-pulse-dot" />
-                                    {loading ? "..." : totalInQueue} Active
+                                    {loading ? "..." : waitingQueue.length + servingNow.length} Active
                                 </span>
                                 <span>•</span>
-                                <span>{waitingQueue.length} Waiting</span>
-                                <span>•</span>
-                                <span>{servingNow.length} Serving</span>
+                                <span className="text-amber-500 font-bold">{waitingQueue.length} On Cashier</span>
                             </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={fetchQueueData}
-                                className="staff-btn-filter"
-                                title="Refresh queue"
-                            >
-                                <RefreshCw size={16} /> Refresh
-                            </button>
-                            <button className="staff-bell-btn">
-                                <Bell size={20} />
-                            </button>
-                        </div>
+                        <button onClick={fetchQueueData} className="staff-btn-filter"><RefreshCw size={16} /> Refresh</button>
                     </div>
 
                     {loading ? (
@@ -279,99 +233,79 @@ export default function ClientQueue() {
                         </div>
                     ) : (
                         <div className="staff-grid-12">
-                            {/* Waiting List */}
+                            {/* ON CASHIER SECTION */}
                             <div className="col-span-8 space-y-6">
-                                <h3 className="staff-section-label-px">
-                                    Waiting Area
-                                    {waitingQueue.length > 0 && (
-                                        <span className="queue-section-count">{waitingQueue.length}</span>
-                                    )}
+                                <h3 className="staff-section-label-px flex items-center gap-2">
+                                    <Wallet size={16} className="text-amber-500" />
+                                    On Cashier (Pending Payment)
+                                    <span className="queue-section-count bg-amber-100 text-amber-600">{waitingQueue.length}</span>
                                 </h3>
                                 <div className="space-y-3">
                                     {waitingQueue.length > 0 ? (
                                         waitingQueue.map((patient) => (
-                                            <div key={patient.id} className="queue-patient-card group">
+                                            <div key={patient.id} className="queue-patient-card border-l-4 border-amber-400">
                                                 <div className="flex items-center gap-6">
-                                                    <div className="queue-patient-avatar">
-                                                        {patient.profiles.full_name.charAt(0)}
-                                                    </div>
+                                                    <div className="queue-patient-avatar bg-amber-100 text-amber-600">{patient.profiles.full_name.charAt(0)}</div>
                                                     <div className="space-y-1">
                                                         <div className="flex items-center gap-2">
                                                             <span className="queue-patient-id">#{patient.id.slice(0, 8)}</span>
                                                             <h4 className="queue-patient-name">{patient.profiles.full_name}</h4>
                                                         </div>
-                                                        <p className="queue-patient-service">{patient.purpose} • {patient.appointment_time}</p>
+                                                        <p className="queue-patient-service">Awaiting Settlement • {patient.purpose}</p>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-4">
-                                                    <div className="queue-wait-badge">
-                                                        <Clock size={12} />
-                                                        {getWaitTime(patient.created_at)}
-                                                    </div>
+                                                    <div className="queue-wait-badge"><Clock size={12} /> {getWaitTime(patient.created_at)}</div>
                                                     <button
-                                                        onClick={() => handleCallPatient(patient.id)}
+                                                        onClick={() => handleMoveToDoctor(patient.id)}
                                                         disabled={actioningId === patient.id}
-                                                        className="queue-call-btn"
+                                                        className="queue-call-btn bg-amber-500 hover:bg-amber-600 border-amber-600"
                                                     >
-                                                        {actioningId === patient.id ? (
-                                                            <Loader2 size={14} className="animate-spin" />
-                                                        ) : (
-                                                            <>Call Patient <ArrowRight size={14} /></>
-                                                        )}
+                                                        {actioningId === patient.id ? <Loader2 size={14} className="animate-spin" /> : <>Move to Doctor <ArrowRight size={14} /></>}
                                                     </button>
                                                 </div>
                                             </div>
                                         ))
                                     ) : (
                                         <div className="queue-empty-state">
-                                            <Users size={48} className="text-slate-200 mb-4" />
-                                            <p className="text-slate-500 font-bold">No patients waiting</p>
-                                            <p className="text-slate-400 text-xs mt-1">Checked-in patients will appear here automatically.</p>
+                                            <p className="text-slate-400 font-bold">Cashier area is clear</p>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Serving Now */}
+                            {/* DOCTOR HALLWAY / SERVING NOW */}
                             <div className="col-span-4 space-y-6">
                                 <h3 className="staff-section-label-px">
-                                    Serving Now
-                                    {servingNow.length > 0 && (
-                                        <span className="queue-section-count">{servingNow.length}</span>
-                                    )}
+                                    Doctor's Hallway
+                                    <span className="queue-section-count">{servingNow.length}</span>
                                 </h3>
                                 {servingNow.length > 0 ? (
                                     servingNow.map((patient) => (
-                                        <div key={patient.id} className="queue-serving-card">
-                                            <div className="staff-dark-panel-glow-emerald" />
+                                        <div key={patient.id} className={`queue-serving-card ${patient.status === 'IN_PROGRESS' ? 'border-emerald-500' : 'border-slate-200'}`}>
                                             <div className="flex justify-between items-center">
-                                                <span className="queue-serving-badge">In Progress</span>
+                                                <span className={`queue-serving-badge ${patient.status === 'IN_PROGRESS' ? 'bg-emerald-500' : 'bg-blue-500'}`}>
+                                                    {patient.status === 'IN_PROGRESS' ? 'With Doctor' : 'Ready'}
+                                                </span>
                                                 <span className="queue-serving-room">{patient.appointment_time}</span>
                                             </div>
                                             <div>
                                                 <h4 className="queue-serving-name">{patient.profiles.full_name}</h4>
-                                                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">
-                                                    {patient.purpose}
-                                                </p>
+                                                <p className="text-slate-500 text-[10px] font-bold uppercase">{patient.purpose}</p>
                                             </div>
-                                            <button
-                                                onClick={() => handleFinish(patient.id)}
-                                                disabled={actioningId === patient.id}
-                                                className="queue-finish-btn"
-                                            >
-                                                {actioningId === patient.id ? (
-                                                    <Loader2 size={14} className="animate-spin mx-auto" />
-                                                ) : (
-                                                    "Mark as Finished"
-                                                )}
-                                            </button>
+                                            {patient.status === 'IN_PROGRESS' && (
+                                                <button
+                                                    onClick={() => handleFinish(patient.id)}
+                                                    className="queue-finish-btn"
+                                                >
+                                                    {actioningId === patient.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Mark as Finished"}
+                                                </button>
+                                            )}
                                         </div>
                                     ))
                                 ) : (
                                     <div className="queue-serving-empty">
-                                        <CheckCircle2 size={32} className="text-slate-300 mb-3" />
-                                        <p className="text-slate-400 font-bold text-sm">No active sessions</p>
-                                        <p className="text-slate-400 text-xs mt-1">Call a patient from the waiting area.</p>
+                                        <p className="text-slate-400 font-bold text-sm">Hallway is empty</p>
                                     </div>
                                 )}
                             </div>
