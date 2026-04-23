@@ -33,17 +33,20 @@ export default function DoctorQueue() {
             fetchDoctorInfo();
             fetchQueue();
 
-            // REALTIME SUBSCRIPTION
+            // REALTIME SUBSCRIPTION - Optimized for status changes
             const channel = supabase
                 .channel('doctor-hallway-v8')
                 .on('postgres_changes',
                     { event: '*', schema: 'public', table: 'appointments' },
                     (payload) => {
-                        // If the updated patient is now COMPLETED, remove them from local state immediately
+                        console.log("Queue Update Received:", payload.new?.status);
+
+                        // IF patient is marked COMPLETED, remove them from local state immediately
                         if (payload.new && payload.new.status === 'COMPLETED') {
                             setQueue(prev => prev.filter(apt => apt.id !== payload.new.id));
-                        } else {
-                            // Otherwise, refresh the full list to handle new check-ins or moves
+                        }
+                        // IF a new patient is checked in or status changes to something we track, refresh
+                        else {
                             fetchQueue();
                         }
                     }
@@ -81,7 +84,7 @@ export default function DoctorQueue() {
                 .select(`*, profiles!user_id (id, full_name)`)
                 .gte('appointment_date', todayStr)
                 .lte('appointment_date', endStr)
-                // ENSURE 'COMPLETED' IS NEVER IN THIS LIST
+                // STATED STATUS FILTER: COMPLETED is excluded to remove them from the UI
                 .in('status', ['CONFIRMED', 'ON_CASHIER', 'CHECKED_IN', 'ON_DOCTOR', 'IN_PROGRESS'])
                 .order('appointment_date', { ascending: true })
                 .order('appointment_time', { ascending: true });
@@ -100,7 +103,6 @@ export default function DoctorQueue() {
     const handleCallPatient = async (appointment) => {
         try {
             setCallingPatientId(appointment.id);
-            // Mark as ON_DOCTOR to signify they are entering the room
             await supabase.from('appointments').update({ status: 'ON_DOCTOR' }).eq('id', appointment.id);
             navigate('/doctor/consultation', { state: { appointment } });
         } catch (err) {
@@ -134,7 +136,7 @@ export default function DoctorQueue() {
                         <div className="flex items-center gap-3 px-2">
                             <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center font-bold text-white text-xl shadow-lg">M</div>
                             <div className="text-white font-black uppercase tracking-tight">
-                                <span className="text-lg block">CareSync</span>
+                                <span className="text-lg block text-emerald-500">CareSync</span>
                                 <span className="text-slate-500 text-[10px] tracking-widest mt-1 uppercase">Doctor Terminal</span>
                             </div>
                         </div>
@@ -160,11 +162,11 @@ export default function DoctorQueue() {
                     <header className="flex justify-between items-center">
                         <div className="space-y-1">
                             <h1 className="text-5xl font-black text-slate-950 uppercase tracking-tighter leading-none italic">Weekly Queue</h1>
-                            <p className="text-slate-500 font-medium uppercase text-[10px] tracking-[0.2em]">Live Hallway Management</p>
+                            <p className="text-slate-500 font-medium uppercase text-[10px] tracking-[0.2em]">Active Patient Flow Management</p>
                         </div>
                         <div className="bg-white border-2 border-slate-50 px-6 py-4 rounded-2xl flex items-center gap-4 shadow-sm">
                             <Activity className="text-emerald-500" size={20} />
-                            <p className="text-sm font-black uppercase">{queue.length} Patients Waiting</p>
+                            <p className="text-sm font-black uppercase">{queue.length} Total in Hallway</p>
                         </div>
                     </header>
 
@@ -175,7 +177,7 @@ export default function DoctorQueue() {
                             <div className="bg-white border-2 border-slate-50 rounded-[3rem] p-24 text-center shadow-sm border-dashed">
                                 <Users size={48} className="mx-auto text-slate-100 mb-4" />
                                 <p className="text-lg font-black text-slate-400 uppercase tracking-widest leading-none">Hallway Clear</p>
-                                <p className="text-xs font-bold text-slate-300 mt-3 uppercase tracking-tighter">No active patients for the next 7 days.</p>
+                                <p className="text-xs font-bold text-slate-300 mt-3 uppercase tracking-tighter">All patient consultations are complete for now.</p>
                             </div>
                         ) : (
                             queue.map((patient, i) => {
@@ -215,7 +217,7 @@ export default function DoctorQueue() {
                                                 disabled={callingPatientId === patient.id || isOnCashier}
                                                 className={`px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-3 transition-all shadow-xl ${isOnCashier ? 'bg-slate-50 text-slate-300 cursor-not-allowed shadow-none border border-slate-100' : 'bg-black text-white hover:bg-emerald-500 disabled:opacity-50'}`}
                                             >
-                                                {isOnCashier ? 'Waiting for Cash' : isWithDoctor ? 'Resume Session' : 'Begin Session'} <ArrowRight size={16} />
+                                                {isOnCashier ? 'Paying' : isWithDoctor ? 'Resume' : 'Call Patient'} <ArrowRight size={16} />
                                             </button>
                                         </div>
                                     </div>
