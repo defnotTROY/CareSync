@@ -82,7 +82,7 @@ export default function RevenueTracker() {
                 <main className="flex-1 p-12 space-y-10 overflow-y-auto">
                     <header className="flex justify-between items-end">
                         <div className="space-y-1">
-                            <h1 className="text-5xl font-black text-slate-950 uppercase tracking-tighter">Financials</h1>
+                            <h1 className="text-5xl font-black text-slate-950 uppercase tracking-tighter">Revenue</h1>
                             <p className="text-slate-500 font-medium uppercase text-[10px] tracking-[0.2em]">Revenue Streams & Transaction History</p>
                         </div>
                         <div className="flex gap-3">
@@ -117,22 +117,12 @@ export default function RevenueTracker() {
                                 <h3 className="text-4xl font-black text-slate-950">₱184,250</h3>
                             </div>
                         </div>
-                        <div className="bg-white p-8 rounded-[2rem] border-2 border-slate-50 shadow-sm space-y-4">
-                            <div className="flex justify-between items-start">
-                                <div className="p-3 bg-slate-100 text-slate-950 rounded-xl"><Users size={20} /></div>
-                                <span className="text-[10px] font-black text-rose-500 flex items-center"><ArrowDownRight size={14} /> -2.1%</span>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Avg. Ticket Size</p>
-                                <h3 className="text-4xl font-black text-slate-950">₱1,250</h3>
-                            </div>
-                        </div>
                     </div>
 
                     {/* RECENT TRANSACTIONS */}
                     <section className="space-y-6">
                         <div className="flex justify-between items-center">
-                            <h3 className="font-black uppercase text-lg tracking-tighter">Live Transactions</h3>
+                            <h3 className="font-black uppercase text-lg tracking-tighter">Recent Transaction</h3>
                             <div className="relative">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                                 <input type="text" placeholder="FIND TXN ID..." className="pl-10 pr-6 py-2 bg-white border border-slate-200 rounded-lg text-[10px] font-black uppercase outline-none focus:border-black w-48" />

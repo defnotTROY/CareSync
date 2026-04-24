@@ -217,7 +217,7 @@ export default function DoctorQueue() {
                                                 disabled={callingPatientId === patient.id || isOnCashier}
                                                 className={`px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-3 transition-all shadow-xl ${isOnCashier ? 'bg-slate-50 text-slate-300 cursor-not-allowed shadow-none border border-slate-100' : 'bg-black text-white hover:bg-emerald-500 disabled:opacity-50'}`}
                                             >
-                                                {isOnCashier ? 'Paying' : isWithDoctor ? 'Resume' : 'Call Patient'} <ArrowRight size={16} />
+                                                {isOnCashier ? 'Paying' : isWithDoctor ? 'Start Consultation' : 'Call Patient'} <ArrowRight size={16} />
                                             </button>
                                         </div>
                                     </div>
