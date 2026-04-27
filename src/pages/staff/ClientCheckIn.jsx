@@ -3,11 +3,11 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, UserCheck, Users, CalendarDays,
     CreditCard, FileText, Camera, Search, Bell, LogOut,
-    CheckCircle2, Settings, UserPlus, Loader2, AlertCircle,
+    CheckCircle2, AlertCircle, Settings, UserPlus, Loader2,
     Calendar, Clock, X, Sparkles, ScanLine
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { supabase } from '../../supabaseClient';
+import { supabase } from '../../lib/supabase.js';
 import PageTransition from "../../components/layout/PageTransition.jsx";
 import '../../styles/staff-portal.css';
 import './ClientCheckIn.css';
@@ -45,14 +45,14 @@ export default function ClientCheckIn() {
     // --- QR SCANNER ---
     const scannerRef = useRef(null);
     const scannerContainerId = 'qr-scanner-container';
-    const [scanStatus, setScanStatus] = useState('idle'); // idle | scanning | found | error
+    const [scanStatus, setScanStatus] = useState('idle');
     const [scanMessage, setScanMessage] = useState('');
     const [scanLoading, setScanLoading] = useState(false);
 
-    // --- FETCH STAFF IDENTITY ON MOUNT ---
-    useEffect(() => {
-        const controller = new AbortController();
+    const allProceduresDone = Object.values(procedures).every(Boolean);
 
+    // --- FETCH STAFF IDENTITY ---
+    useEffect(() => {
         async function fetchStaffInfo() {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
@@ -61,267 +61,117 @@ export default function ClientCheckIn() {
                         .from('profiles')
                         .select('full_name')
                         .eq('id', user.id)
-                        .single()
-                        .abortSignal(controller.signal);
+                        .single();
                     setStaffName(profile?.full_name || "Staff Member");
                 }
-            } catch (err) {
-                if (err.name !== 'AbortError') console.error("Staff info error:", err);
-            } finally {
-                setStaffLoading(false);
-            }
+            } catch (err) { console.error(err); }
+            finally { setStaffLoading(false); }
         }
-
         fetchStaffInfo();
-        return () => controller.abort();
     }, []);
 
-    // --- QR SCANNER LIFECYCLE ---
+    // --- QR SCANNER HELPERS ---
     const stopScanner = useCallback(async () => {
         if (scannerRef.current) {
-            try {
-                await scannerRef.current.stop();
-            } catch (_) { /* scanner may already be stopped */ }
-            try {
-                scannerRef.current.clear();
-            } catch (_) { /* ignore */ }
+            try { await scannerRef.current.stop(); } catch (_) { }
+            try { scannerRef.current.clear(); } catch (_) { }
             scannerRef.current = null;
         }
     }, []);
 
     const handleQrScanSuccess = useCallback(async (decodedText) => {
-        // Immediately stop scanner to prevent double-scans
         await stopScanner();
         setScanLoading(false);
         setScanStatus('scanning');
-
         try {
-            // The QR code contains only the appointment ID
-            const appointmentId = decodedText.trim();
-
-            // Look up the appointment in Supabase
             const { data: appointment, error: aptError } = await supabase
                 .from('appointments')
-                .select('*')
-                .eq('id', appointmentId)
+                .select('*, profiles:user_id (id, full_name)')
+                .eq('id', decodedText.trim())
                 .single();
 
             if (aptError || !appointment) {
                 setScanStatus('error');
-                setScanMessage('No appointment found for this QR code. It may be invalid or expired.');
+                setScanMessage('Invalid QR or Not Found');
                 return;
             }
 
-            if (appointment.status === 'CHECKED_IN') {
-                setScanStatus('error');
-                setScanMessage('This patient has already been checked in.');
-                return;
-            }
-
-            if (appointment.status !== 'CONFIRMED') {
-                setScanStatus('error');
-                setScanMessage(`This appointment has status "${appointment.status}". Only CONFIRMED appointments can be checked in.`);
-                return;
-            }
-
-            // Fetch patient profile info
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('id, full_name')
-                .eq('id', appointment.user_id)
-                .single();
-
-            const enrichedApt = {
-                ...appointment,
-                profiles: profile || { full_name: 'Unknown Patient' }
-            };
-
-            // Auto-select the appointment for check-in
-            handleSelectAppointment(enrichedApt);
+            setSelectedApt(appointment);
             setScanStatus('found');
-            setScanMessage(`Found: ${enrichedApt.profiles.full_name} — ${appointment.purpose}`);
-
-            // Reset scan status after 3s so staff can see the patient card
-            setTimeout(() => {
-                setScanStatus('idle');
-                setScanMessage('');
-            }, 3000);
-        } catch (err) {
-            console.error('QR scan lookup error:', err);
-            setScanStatus('error');
-            setScanMessage('Error looking up appointment. Please try again or use Manual Entry.');
-        }
+        } catch (err) { setScanStatus('error'); }
     }, [stopScanner]);
 
-    // Start/stop scanner when tab changes
     useEffect(() => {
         if (activeTab === 'scan' && scanStatus === 'idle') {
-            // Small delay to ensure DOM element exists
             const timer = setTimeout(async () => {
                 const containerEl = document.getElementById(scannerContainerId);
                 if (!containerEl) return;
-
                 setScanLoading(true);
                 try {
                     const html5Qrcode = new Html5Qrcode(scannerContainerId);
                     scannerRef.current = html5Qrcode;
-
-                    await html5Qrcode.start(
-                        { facingMode: 'environment' },
-                        { fps: 10, qrbox: { width: 250, height: 250 } },
-                        handleQrScanSuccess,
-                        () => {} // ignore scan failures (no QR in frame yet)
-                    );
+                    await html5Qrcode.start({ facingMode: 'environment' }, { fps: 10, qrbox: 250 }, handleQrScanSuccess, () => { });
                     setScanLoading(false);
-                } catch (err) {
-                    console.error('QR Scanner init error:', err);
-                    setScanLoading(false);
-                    setScanStatus('error');
-                    setScanMessage('Could not access camera. Please check permissions or use Manual Entry.');
-                }
+                } catch (err) { setScanStatus('error'); }
             }, 300);
-
             return () => clearTimeout(timer);
         }
-
-        if (activeTab !== 'scan') {
-            stopScanner();
-            setScanStatus('idle');
-            setScanMessage('');
-        }
+        if (activeTab !== 'scan') stopScanner();
     }, [activeTab, scanStatus, handleQrScanSuccess, stopScanner]);
 
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => { stopScanner(); };
-    }, [stopScanner]);
-
-    // --- SEARCH FOR CONFIRMED APPOINTMENTS ---
+    // --- SEARCH LOGIC ---
     const handleSearch = async () => {
         if (!searchQuery.trim()) return;
-
         setSearching(true);
         setHasSearched(true);
-        setSelectedApt(null);
-        resetProcedures();
-
         try {
-            // First fetch all CONFIRMED appointments
-            const { data: appointments, error: aptError } = await supabase
-                .from('appointments')
-                .select('*')
-                .eq('status', 'CONFIRMED')
-                .order('appointment_date', { ascending: true });
+            const todayStr = new Date().toISOString().split('T')[0];
+            const { data: matchedProfiles } = await supabase.from('profiles').select('id').ilike('full_name', `%${searchQuery}%`);
+            const matchedUserIds = (matchedProfiles || []).map(p => p.id);
 
-            if (aptError) throw aptError;
+            let query = supabase.from('appointments').select('*, profiles:user_id (id, full_name)')
+                .eq('appointment_date', todayStr)
+                .not('status', 'in', '("COMPLETED","ON_CASHIER","ON_DOCTOR")');
 
-            if (!appointments || appointments.length === 0) {
-                setSearchResults([]);
-                return;
+            if (matchedUserIds.length > 0) {
+                query = query.or(`user_id.in.(${matchedUserIds.join(',')}),purpose.ilike.%${searchQuery}%`);
+            } else {
+                query = query.ilike('purpose', `%${searchQuery}%`);
             }
 
-            // Fetch profiles for these appointments
-            const userIds = [...new Set(appointments.map(a => a.user_id).filter(Boolean))];
-            const { data: profiles } = await supabase
-                .from('profiles')
-                .select('id, full_name')
-                .in('id', userIds);
-
-            // Merge and filter by search query
-            const query = searchQuery.toLowerCase().trim();
-            const merged = appointments.map(apt => ({
-                ...apt,
-                profiles: (profiles || []).find(p => String(p.id) === String(apt.user_id)) || { full_name: "Unknown Patient" }
-            }));
-
-            const filtered = merged.filter(apt => {
-                const nameMatch = apt.profiles.full_name.toLowerCase().includes(query);
-                const idMatch = apt.id.toLowerCase().includes(query);
-                const purposeMatch = apt.purpose.toLowerCase().includes(query);
-                return nameMatch || idMatch || purposeMatch;
-            });
-
-            setSearchResults(filtered);
-        } catch (err) {
-            console.error("Search error:", err.message);
-            setSearchResults([]);
-        } finally {
-            setSearching(false);
-        }
+            const { data } = await query.order('appointment_time', { ascending: true });
+            setSearchResults(data || []);
+        } catch (err) { console.error(err); }
+        finally { setSearching(false); }
     };
 
-    // Trigger search on Enter key
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter') handleSearch();
-    };
-
-    // --- SELECT AN APPOINTMENT ---
-    const handleSelectAppointment = (apt) => {
-        setSelectedApt(apt);
-        resetProcedures();
-        setCheckInSuccess(false);
-    };
-
-    // --- PROCEDURE TOGGLES ---
-    const toggleProcedure = (key) => {
-        setProcedures(prev => ({ ...prev, [key]: !prev[key] }));
-    };
-
-    const resetProcedures = () => {
-        setProcedures({
-            verifyIdentity: false,
-            updateContact: false,
-            consentSigned: false,
-            collectPayment: false
-        });
-    };
-
-    const allProceduresDone = Object.values(procedures).every(Boolean);
-
-    // --- COMPLETE CHECK-IN ---
     const handleCompleteCheckIn = async () => {
         if (!selectedApt || !allProceduresDone) return;
-
         setIsCheckingIn(true);
         try {
+            // THE CRITICAL FIX: Explicitly update status to ON_CASHIER
             const { error } = await supabase
                 .from('appointments')
-                .update({ status: 'CHECKED_IN' })
+                .update({
+                    status: 'ON_CASHIER',
+                    updated_at: new Date().toISOString()
+                })
                 .eq('id', selectedApt.id);
 
             if (error) throw error;
 
             setCheckInSuccess(true);
-
-            // Remove checked-in appointment from results
-            setSearchResults(prev => prev.filter(a => a.id !== selectedApt.id));
-
-            // Auto-reset after 3 seconds
             setTimeout(() => {
-                setSelectedApt(null);
-                setCheckInSuccess(false);
-                resetProcedures();
-            }, 3000);
+                navigate('/staff/queue');
+            }, 2000);
         } catch (err) {
-            console.error("Check-in error:", err.message);
-            alert("Error checking in patient: " + err.message);
+            alert("Check-in failed: " + err.message);
         } finally {
             setIsCheckingIn(false);
         }
     };
 
-    // --- LOGOUT ---
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        navigate('/login');
-    };
-
-    // --- HELPERS ---
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString(undefined, {
-            month: 'short', day: 'numeric', year: 'numeric'
-        });
-    };
+    const toggleProcedure = (key) => setProcedures(prev => ({ ...prev, [key]: !prev[key] }));
 
     const navItems = [
         { name: 'Dashboard', icon: LayoutDashboard, path: '/staff/dashboard' },
@@ -333,18 +183,9 @@ export default function ClientCheckIn() {
         { name: 'New Client', icon: UserPlus, path: '/staff/new-client' },
     ];
 
-    const procedureItems = [
-        { id: 'verifyIdentity', label: 'Verify Identity' },
-        { id: 'updateContact', label: 'Update Contact Info' },
-        { id: 'consentSigned', label: 'Consent Form Signed' },
-        { id: 'collectPayment', label: 'Collect Co-payment' }
-    ];
-
     return (
         <PageTransition>
             <div className="staff-layout">
-
-                {/* SIDEBAR */}
                 <aside className="staff-sidebar">
                     <div className="staff-sidebar-top">
                         <div className="staff-brand">
@@ -354,289 +195,105 @@ export default function ClientCheckIn() {
                                 <span className="staff-brand-sub">Staff Terminal</span>
                             </div>
                         </div>
-
                         <nav className="staff-nav">
-                            {navItems.map((item) => {
-                                const isActive = location.pathname === item.path;
-                                return (
-                                    <Link
-                                        key={item.name}
-                                        to={item.path}
-                                        className={`staff-nav-link ${isActive ? 'staff-nav-link--active' : ''}`}
-                                    >
-                                        <item.icon size={20} className={isActive ? 'staff-nav-icon--active' : 'staff-nav-icon'} />
-                                        <span className="staff-nav-label">{item.name}</span>
-                                    </Link>
-                                );
-                            })}
+                            {navItems.map((item) => (
+                                <Link key={item.name} to={item.path} className={`staff-nav-link ${location.pathname === item.path ? 'staff-nav-link--active' : ''}`}>
+                                    <item.icon size={20} className={location.pathname === item.path ? 'staff-nav-icon--active' : 'staff-nav-icon'} />
+                                    <span className="staff-nav-label">{item.name}</span>
+                                </Link>
+                            ))}
                         </nav>
                     </div>
-
                     <div className="staff-sidebar-bottom">
-                        <Link
-                            to="/staff/settings"
-                            className={`staff-settings-link ${location.pathname === '/staff/settings' ? 'staff-settings-link--active' : ''}`}
-                        >
-                            <Settings size={20} className={location.pathname === '/staff/settings' ? 'staff-nav-icon--active' : 'staff-nav-icon'} />
-                            <span className="staff-nav-label">Settings</span>
-                        </Link>
-
                         <div className="staff-user-section">
-                            <div className="staff-user-info">
-                                <div className="staff-user-avatar">{staffName ? staffName.charAt(0) : 'S'}</div>
-                                <div className="flex flex-col overflow-hidden">
-                                    <span className="staff-user-name truncate w-20">{staffLoading ? "..." : staffName}</span>
-                                    <span className="staff-user-role">Staff</span>
-                                </div>
-                            </div>
-                            <button
-                                onClick={handleLogout}
-                                className="staff-logout-btn"
-                                title="Logout"
-                            >
-                                <LogOut size={18} />
-                            </button>
+                            <div className="staff-user-avatar">{staffName?.charAt(0)}</div>
+                            <span className="staff-user-name truncate w-24">{staffName}</span>
+                            <button onClick={() => supabase.auth.signOut()} className="staff-logout-btn"><LogOut size={18} /></button>
                         </div>
                     </div>
                 </aside>
 
-                {/* MAIN CONTENT */}
                 <main className="staff-main-sm">
-                    {/* Header */}
                     <div className="staff-header">
-                        <div className="staff-header-info">
-                            <h1 className="staff-page-title-sm">Client Check-in</h1>
-                            <p className="staff-page-subtitle-plain">Verify and initiate patient clinical journey</p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="staff-active-indicator">
-                                <div className="staff-pulse-dot" />
-                                <span className="staff-active-label">Terminal Active</span>
-                            </div>
-                            <button className="staff-bell-btn">
-                                <Bell size={20} />
-                            </button>
-                        </div>
+                        <h1 className="staff-page-title-sm uppercase font-black tracking-tighter italic">Client Check-in</h1>
                     </div>
 
                     <div className="staff-grid-12">
-                        {/* LEFT: Scanner / Manual Search */}
                         <div className="col-span-7 space-y-8">
-                            <div className="checkin-scanner-card">
-                                <div className="checkin-tab-bar">
-                                    <button onClick={() => setActiveTab('scan')} className={`staff-tab ${activeTab === 'scan' ? 'staff-tab--active' : 'staff-tab--inactive'}`}>
-                                        <Camera size={18} /> Scan QR Code
+                            <div className="checkin-scanner-card bg-white rounded-[2.5rem] border-2 border-slate-50 overflow-hidden shadow-sm">
+                                <div className="checkin-tab-bar flex border-b">
+                                    <button onClick={() => setActiveTab('scan')} className={`flex-1 p-6 font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 ${activeTab === 'scan' ? 'bg-black text-white' : 'text-slate-400'}`}>
+                                        <Camera size={18} /> Scan QR
                                     </button>
-                                    <button onClick={() => setActiveTab('manual')} className={`staff-tab ${activeTab === 'manual' ? 'staff-tab--active' : 'staff-tab--inactive'}`}>
-                                        <Search size={18} /> Manual Entry
+                                    <button onClick={() => setActiveTab('manual')} className={`flex-1 p-6 font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 ${activeTab === 'manual' ? 'bg-black text-white' : 'text-slate-400'}`}>
+                                        <Search size={18} /> Manual Search
                                     </button>
                                 </div>
 
-                                {/* SCAN TAB — Live QR Scanner */}
-                                {activeTab === 'scan' && (
-                                    <div className="checkin-scanner-body-live">
-                                        {scanStatus === 'found' ? (
-                                            <div className="checkin-scan-found">
-                                                <div className="checkin-scan-found-icon">
-                                                    <CheckCircle2 size={32} />
-                                                </div>
-                                                <p className="checkin-scan-found-title">QR Code Scanned!</p>
-                                                <p className="checkin-scan-found-text">{scanMessage}</p>
-                                            </div>
-                                        ) : scanStatus === 'error' ? (
-                                            <div className="checkin-scan-error">
-                                                <AlertCircle size={32} className="text-red-400" />
-                                                <p className="text-sm font-bold text-red-600 mt-3">{scanMessage}</p>
-                                                <button
-                                                    onClick={() => {
-                                                        setScanStatus('idle');
-                                                        setScanMessage('');
-                                                    }}
-                                                    className="staff-btn-activate mt-4"
-                                                >
-                                                    <ScanLine size={16} /> Try Again
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <div className="checkin-qr-viewport">
-                                                    <div id={scannerContainerId} className="checkin-qr-reader" />
-                                                    {scanLoading && (
-                                                        <div className="checkin-qr-loading">
-                                                            <Loader2 size={32} className="animate-spin text-white" />
-                                                            <p className="text-white text-xs font-bold mt-2">Starting camera...</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="text-center space-y-2 mt-4">
-                                                    <p className="checkin-scanner-title">Scan Patient QR</p>
-                                                    <p className="checkin-scanner-desc">Position the QR code within the camera frame to auto-detect the appointment.</p>
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* MANUAL ENTRY TAB */}
-                                {activeTab === 'manual' && (
-                                    <div className="checkin-manual-body">
-                                        <div className="checkin-search-bar">
-                                            <Search size={18} className="text-slate-400" />
-                                            <input
-                                                type="text"
-                                                placeholder="Search by patient name, appointment ID, or purpose..."
-                                                value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                                onKeyDown={handleKeyDown}
-                                                className="checkin-search-input"
-                                            />
-                                            <button
-                                                onClick={handleSearch}
-                                                disabled={searching || !searchQuery.trim()}
-                                                className="checkin-search-btn"
-                                            >
-                                                {searching ? <Loader2 size={16} className="animate-spin" /> : "Search"}
-                                            </button>
+                                <div className="p-8">
+                                    {activeTab === 'scan' ? (
+                                        <div id={scannerContainerId} className="aspect-square bg-slate-50 rounded-3xl overflow-hidden relative">
+                                            {scanLoading && <div className="absolute inset-0 flex items-center justify-center bg-black/10"><Loader2 className="animate-spin" /></div>}
                                         </div>
-
-                                        {/* Search Results */}
-                                        <div className="checkin-results-area">
-                                            {searching ? (
-                                                <div className="checkin-empty-state">
-                                                    <Loader2 size={32} className="animate-spin text-slate-300" />
-                                                    <p className="text-slate-400 text-sm mt-3">Searching appointments...</p>
-                                                </div>
-                                            ) : searchResults.length > 0 ? (
-                                                <div className="checkin-results-list">
-                                                    <p className="checkin-results-count">{searchResults.length} confirmed appointment{searchResults.length > 1 ? 's' : ''} found</p>
-                                                    {searchResults.map((apt) => (
-                                                        <button
-                                                            key={apt.id}
-                                                            onClick={() => handleSelectAppointment(apt)}
-                                                            className={`checkin-result-card ${selectedApt?.id === apt.id ? 'checkin-result-card--active' : ''}`}
-                                                        >
-                                                            <div className="checkin-result-avatar">
-                                                                {apt.profiles.full_name.charAt(0)}
-                                                            </div>
-                                                            <div className="checkin-result-info">
-                                                                <p className="checkin-result-name">{apt.profiles.full_name}</p>
-                                                                <p className="checkin-result-detail">{apt.purpose} • {formatDate(apt.appointment_date)}</p>
-                                                            </div>
-                                                            <div className="checkin-result-meta">
-                                                                <span className="checkin-result-time">{apt.appointment_time}</span>
-                                                                <span className="checkin-result-id">#{apt.id.slice(0, 8)}</span>
-                                                            </div>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            ) : hasSearched ? (
-                                                <div className="checkin-empty-state">
-                                                    <AlertCircle size={32} className="text-slate-300" />
-                                                    <p className="text-slate-500 font-bold mt-3">No confirmed appointments found</p>
-                                                    <p className="text-slate-400 text-xs mt-1">Only CONFIRMED appointments can be checked in.</p>
-                                                </div>
-                                            ) : (
-                                                <div className="checkin-empty-state">
-                                                    <Search size={32} className="text-slate-200" />
-                                                    <p className="text-slate-400 text-sm mt-3">Search for a patient to begin check-in</p>
-                                                </div>
-                                            )}
+                                    ) : (
+                                        <div className="space-y-6">
+                                            <div className="flex gap-2">
+                                                <input type="text" placeholder="Search patient name..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="flex-1 p-4 bg-slate-50 border-2 border-transparent focus:border-black rounded-2xl outline-none font-bold transition-all" />
+                                                <button onClick={handleSearch} className="bg-black text-white px-8 rounded-2xl font-black uppercase text-[10px]">Find</button>
+                                            </div>
+                                            <div className="max-height-[300px] overflow-y-auto space-y-2">
+                                                {searchResults.map(apt => (
+                                                    <button key={apt.id} onClick={() => setSelectedApt(apt)} className={`w-full p-4 border-2 rounded-2xl text-left transition-all ${selectedApt?.id === apt.id ? 'border-black bg-slate-50' : 'border-slate-50'}`}>
+                                                        <p className="font-black uppercase text-sm">{apt.profiles?.full_name}</p>
+                                                        <p className="text-[10px] font-bold text-slate-400">{apt.appointment_time} • {apt.purpose}</p>
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
                         </div>
 
-                        {/* RIGHT: Patient Info + Procedures */}
-                        <div className="col-span-5 space-y-6">
-
-                            {/* Patient Info Card */}
+                        <div className="col-span-5">
                             {selectedApt && !checkInSuccess && (
-                                <div className="checkin-patient-card">
-                                    <div className="checkin-patient-header">
-                                        <div className="checkin-patient-avatar-lg">
-                                            {selectedApt.profiles.full_name.charAt(0)}
-                                        </div>
+                                <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm space-y-6">
+                                    <div className="flex justify-between items-center border-b pb-6">
                                         <div>
-                                            <p className="checkin-patient-name">{selectedApt.profiles.full_name}</p>
-                                            <p className="checkin-patient-id">ID: #{selectedApt.id.slice(0, 8).toUpperCase()}</p>
+                                            <p className="text-[10px] font-black text-emerald-500 uppercase">Selected Patient</p>
+                                            <h3 className="text-2xl font-black uppercase tracking-tight">{selectedApt.profiles?.full_name}</h3>
                                         </div>
-                                        <button onClick={() => { setSelectedApt(null); resetProcedures(); }} className="checkin-patient-close">
-                                            <X size={16} />
-                                        </button>
+                                        <button onClick={() => setSelectedApt(null)} className="text-slate-300 hover:text-black"><X size={24} /></button>
                                     </div>
-                                    <div className="checkin-patient-details">
-                                        <div className="checkin-detail-row">
-                                            <Calendar size={14} className="text-slate-400" />
-                                            <span>{formatDate(selectedApt.appointment_date)}</span>
-                                        </div>
-                                        <div className="checkin-detail-row">
-                                            <Clock size={14} className="text-slate-400" />
-                                            <span>{selectedApt.appointment_time}</span>
-                                        </div>
-                                        <div className="checkin-detail-row">
-                                            <FileText size={14} className="text-slate-400" />
-                                            <span>{selectedApt.purpose}</span>
-                                        </div>
-                                        <div className="checkin-detail-row">
-                                            <CreditCard size={14} className="text-slate-400" />
-                                            <span>₱{selectedApt.amount || 0} — {selectedApt.payment_method || 'N/A'}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
 
-                            {/* Success State */}
-                            {checkInSuccess && (
-                                <div className="checkin-success-card">
-                                    <div className="checkin-success-icon">
-                                        <Sparkles size={32} />
-                                    </div>
-                                    <h3 className="checkin-success-title">Check-in Complete!</h3>
-                                    <p className="checkin-success-text">
-                                        {selectedApt?.profiles?.full_name} has been checked in successfully.
-                                    </p>
-                                </div>
-                            )}
-
-                            {/* Procedure Checklist */}
-                            {!checkInSuccess && (
-                                <div className="staff-card">
-                                    <h3 className="staff-section-title"><FileText size={18} /> Standard Procedure</h3>
-
-                                    {!selectedApt && (
-                                        <p className="checkin-procedure-hint">Select a patient to begin the check-in procedure.</p>
-                                    )}
-
-                                    <div className="space-y-4">
-                                        {procedureItems.map((item) => (
-                                            <button
-                                                key={item.id}
-                                                onClick={() => toggleProcedure(item.id)}
-                                                disabled={!selectedApt}
-                                                className={`checkin-procedure-btn ${procedures[item.id] ? 'border-black' : 'border-slate-100'} ${!selectedApt ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            >
-                                                <div className={`checkin-procedure-check ${procedures[item.id] ? 'bg-black border-black text-white' : 'border-slate-200'}`}>
-                                                    {procedures[item.id] && <CheckCircle2 size={14} />}
+                                    <div className="space-y-3">
+                                        {['verifyIdentity', 'updateContact', 'consentSigned', 'collectPayment'].map(key => (
+                                            <button key={key} onClick={() => toggleProcedure(key)} className={`w-full p-4 border-2 rounded-2xl flex justify-between items-center transition-all ${procedures[key] ? 'border-black bg-slate-50' : 'border-slate-50 hover:border-slate-200'}`}>
+                                                <span className={`text-[10px] font-black uppercase ${procedures[key] ? 'text-black' : 'text-slate-400'}`}>
+                                                    {key.replace(/([A-Z])/g, ' $1')}
+                                                </span>
+                                                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center ${procedures[key] ? 'bg-black border-black text-white' : 'border-slate-100'}`}>
+                                                    {procedures[key] && <CheckCircle2 size={14} />}
                                                 </div>
-                                                <p className={`checkin-procedure-label ${procedures[item.id] ? 'text-black' : 'text-slate-400'}`}>
-                                                    {item.label}
-                                                </p>
                                             </button>
                                         ))}
                                     </div>
 
                                     <button
+                                        disabled={!allProceduresDone || isCheckingIn}
                                         onClick={handleCompleteCheckIn}
-                                        disabled={!selectedApt || !allProceduresDone || isCheckingIn}
-                                        className="staff-btn-primary-full"
+                                        className="w-full py-5 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest disabled:opacity-20 shadow-xl"
                                     >
-                                        {isCheckingIn ? (
-                                            <><Loader2 size={18} className="animate-spin" /> Processing...</>
-                                        ) : (
-                                            <><UserCheck size={18} /> Complete Check-in</>
-                                        )}
+                                        {isCheckingIn ? "Processing..." : "Move to Cashier Queue"}
                                     </button>
+                                </div>
+                            )}
+
+                            {checkInSuccess && (
+                                <div className="bg-emerald-500 text-white p-10 rounded-[2.5rem] text-center shadow-xl animate-in zoom-in">
+                                    <Sparkles size={48} className="mx-auto mb-4" />
+                                    <h3 className="text-xl font-black uppercase italic">Handed to Cashier</h3>
+                                    <p className="text-emerald-100 text-[10px] uppercase font-bold mt-2">Status Updated: ON_CASHIER</p>
                                 </div>
                             )}
                         </div>

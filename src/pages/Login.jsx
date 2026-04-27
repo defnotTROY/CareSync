@@ -111,7 +111,7 @@ export default function Login() {
                 <div className="auth-form-panel flex items-center justify-center p-8">
                     <div className="auth-form-container w-full max-w-md">
                         <div className="auth-form-header mb-8">
-                            <h2 className="auth-form-title text-2xl font-bold text-slate-900">Welcome Back</h2>
+                            <h2 className="auth-form-title text-2xl font-bold text-slate-900">Welcome</h2>
                             <p className="auth-form-subtitle text-slate-500">Please enter your credentials</p>
                         </div>
 
