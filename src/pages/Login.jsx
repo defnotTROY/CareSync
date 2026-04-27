@@ -176,11 +176,7 @@ export default function Login() {
                             </button>
                         </form>
 
-                        <div className="divider-section flex items-center gap-4 my-8">
-                            <div className="h-px bg-slate-100 flex-1"></div>
-                            <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Identity Provider</span>
-                            <div className="h-px bg-slate-100 flex-1"></div>
-                        </div>
+
 
 
 
