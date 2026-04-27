@@ -5,59 +5,59 @@ import './ChatBot.css';
 const FAQ_DATA = [
   {
     keywords: ['hello', 'hi', 'hey', 'good morning', 'good afternoon'],
-    answer: "Hello! 👋 Welcome to MIY 88 Medical Clinic. How can I help you today?",
+    answer: "Hello!  Welcome to MIY 88 Medical Clinic. How can I help you today?",
   },
   {
     keywords: ['hour', 'hours', 'open', 'close', 'schedule', 'time', 'when'],
-    answer: "🕐 Our clinic is open Monday–Saturday, 8:00 AM – 5:00 PM. We're closed on Sundays and public holidays.",
+    answer: " Our clinic is open Monday–Saturday, 8:00 AM – 5:00 PM. We're closed on Sundays and public holidays.",
   },
   {
     keywords: ['book', 'appointment', 'reserve', 'schedule visit', 'slot'],
-    answer: "📅 You can book an appointment through your dashboard! Just log in, click \"Book Appointment\", choose your preferred date/time, and you're all set.",
+    answer: " You can book an appointment through your dashboard! Just log in, click \"Book Appointment\", choose your preferred date/time, and you're all set.",
   },
   {
     keywords: ['service', 'services', 'offer', 'specialization', 'treatment'],
-    answer: "🏥 We offer a range of services including:\n• Annual Physical Exam (APE)\n• Pre-Employment Medical Exam\n• Drug Testing\n• Neuropsychiatric Testing\n• X-Ray & Laboratory\n• Medical Certificates",
+    answer: " We offer a range of services including:\n• Annual Physical Exam (APE)\n• Pre-Employment Medical Exam\n• Drug Testing\n• Neuropsychiatric Testing\n• X-Ray & Laboratory\n• Medical Certificates",
   },
   {
     keywords: ['price', 'cost', 'fee', 'how much', 'payment', 'pay', 'pricing'],
-    answer: "💰 Pricing varies by service. For specific rates, please visit our clinic or call our front desk. We accept cash and major payment methods.",
+    answer: " Pricing varies by service. For specific rates, please visit our clinic or call our front desk. We accept cash and major payment methods.",
   },
   {
     keywords: ['location', 'address', 'where', 'direction', 'map', 'find'],
-    answer: "📍 We're located at MIY 88 Medical Clinic. For exact directions, check the Contact section on our website or search for us on Google Maps!",
+    answer: " We're located at MIY 88 Medical Clinic. For exact directions, check the Contact section on our website or search for us on Google Maps!",
   },
   {
     keywords: ['contact', 'phone', 'email', 'call', 'reach'],
-    answer: "📞 You can reach us through the Contact page on our website, or visit us during clinic hours. Our staff will be happy to assist you!",
+    answer: " You can reach us through the Contact page on our website, or visit us during clinic hours. Our staff will be happy to assist you!",
   },
   {
     keywords: ['login', 'sign in', 'account', 'register', 'sign up'],
-    answer: "🔐 To log in, click the \"Login\" button at the top-right corner. If you don't have an account yet, click \"Sign Up\" to create one — it only takes a minute!",
+    answer: " To log in, click the \"Login\" button at the top-right corner. If you don't have an account yet, click \"Sign Up\" to create one — it only takes a minute!",
   },
   {
     keywords: ['cancel', 'reschedule', 'change appointment'],
-    answer: "🔄 To cancel or reschedule, go to \"My Appointments\" in your dashboard. You can manage all your bookings from there.",
+    answer: " To cancel or reschedule, go to \"My Appointments\" in your dashboard. You can manage all your bookings from there.",
   },
   {
     keywords: ['result', 'results', 'lab', 'laboratory', 'test result'],
-    answer: "🧪 Lab results are typically available within 1–3 business days. You can check your results through your dashboard or pick them up at the clinic.",
+    answer: " Lab results are typically available within 1–3 business days. You can check your results through your dashboard or pick them up at the clinic.",
   },
   {
     keywords: ['queue', 'wait', 'waiting', 'line', 'turn'],
-    answer: "📋 You can view the live queue from our \"Live Queue\" page! It shows real-time updates so you know when it's your turn.",
+    answer: " You can view the live queue from our \"Live Queue\" page! It shows real-time updates so you know when it's your turn.",
   },
   {
     keywords: ['thank', 'thanks', 'thank you', 'appreciate'],
-    answer: "You're welcome! 😊 Is there anything else I can help you with?",
+    answer: "You're welcome! Is there anything else I can help you with?",
   },
 ];
 
-const FALLBACK = "I'm sorry, I don't have an answer for that yet. 🤔 You can try asking about our services, clinic hours, booking, or pricing. Or feel free to contact our front desk for further assistance!";
+const FALLBACK = "I'm sorry, I don't have an answer for that yet.  You can try asking about our services, clinic hours, booking, or pricing. Or feel free to contact our front desk for further assistance!";
 
 const WELCOME_MSG = {
   sender: 'bot',
-  text: "Hi there! 👋 I'm the CareSync Assistant. I can answer questions about our clinic. Try asking about:",
+  text: "Hi there!  I'm the CareSync Assistant. I can answer questions about our clinic. Try asking about:",
   time: new Date(),
 };
 

@@ -182,10 +182,7 @@ export default function Login() {
                             <div className="h-px bg-slate-100 flex-1"></div>
                         </div>
 
-                        <button type="button" className="w-full border border-slate-200 py-3 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-50 transition-colors font-medium text-slate-700">
-                            <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="google" />
-                            Continue with Google
-                        </button>
+
 
                         <p className="auth-footer-text text-center mt-8 text-slate-500 text-sm">
                             New user? {' '}
