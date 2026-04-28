@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, CalendarPlus, ClipboardList, Settings,
-    LogOut, ShieldCheck, User, ChevronLeft, ChevronRight, Check, Clock, Printer, Download, Loader2, QrCode
+    LogOut, ShieldCheck, User, ChevronLeft, ChevronRight, Check, Clock, Printer, Download, Loader2, QrCode, AlertCircle
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { supabase } from '../supabaseClient';
@@ -36,6 +36,7 @@ export default function BookAppointment() {
     const [monthIndex, setMonthIndex] = useState(today.getMonth());
     const [appointmentId, setAppointmentId] = useState(null);
     const [qrCodeDataUrl, setQrCodeDataUrl] = useState(null);
+    const [bookingError, setBookingError] = useState(null);
 
     // --- PRE-FILL DATA IF RESCHEDULING ---
     useEffect(() => {
@@ -47,6 +48,11 @@ export default function BookAppointment() {
             // We keep the current date/time as default so the user can pick a NEW one
         }
     }, [rescheduleData]);
+
+    // --- CLEAR BOOKING ERROR ON DATE/TIME CHANGE ---
+    useEffect(() => {
+        setBookingError(null);
+    }, [selectedDate, selectedTime, monthIndex, currentYear]);
 
     // --- FETCH USER PROFILE ---
     useEffect(() => {
@@ -83,6 +89,7 @@ export default function BookAppointment() {
     // --- DATABASE SUBMISSION (INSERT OR UPDATE) ---
     const handleConfirmBooking = async () => {
         setIsSaving(true);
+        setBookingError(null);
         try {
             const { data: { user } } = await supabase.auth.getUser();
 
@@ -93,6 +100,24 @@ export default function BookAppointment() {
             }
 
             const formattedDate = `${currentYear}-${(monthIndex + 1).toString().padStart(2, '0')}-${selectedDate.toString().padStart(2, '0')}`;
+
+            // --- DUPLICATE BOOKING CHECK (new bookings only) ---
+            if (!rescheduleData) {
+                const { data: conflict } = await supabase
+                    .from('appointments')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .eq('appointment_date', formattedDate)
+                    .eq('appointment_time', selectedTime)
+                    .not('status', 'in', '("CANCELLED","EXPIRED")')
+                    .maybeSingle();
+
+                if (conflict) {
+                    setBookingError('You already have an appointment at this date and time. Please choose a different schedule.');
+                    setIsSaving(false);
+                    return;
+                }
+            }
 
             let result;
 
@@ -365,6 +390,13 @@ export default function BookAppointment() {
 
                         {/* FOOTER ACTIONS */}
                         {currentStep < 4 && (
+                            <>
+                            {bookingError && (
+                                <div className="flex items-center gap-3 p-4 bg-red-50 text-red-600 rounded-2xl border border-red-100 text-sm font-bold shadow-sm mb-4">
+                                    <AlertCircle size={18} className="shrink-0" />
+                                    {bookingError}
+                                </div>
+                            )}
                             <div className="footer-actions">
                                 <button onClick={() => setCurrentStep(prev => prev - 1)} className={`back-link ${currentStep === 1 ? 'invisible' : ''}`} disabled={isSaving}><ChevronLeft size={16} /> Back</button>
                                 <div className="flex gap-4">
@@ -377,6 +409,7 @@ export default function BookAppointment() {
                                     )}
                                 </div>
                             </div>
+                            </>
                         )}
                     </div>
 

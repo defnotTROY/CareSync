@@ -42,13 +42,35 @@ export default function MyAppointments() {
             if (profile) setUserName(profile.full_name);
             setIsUserLoading(false);
 
-            const { data: aptData, error: aptError } = await supabase
+            let { data: aptData, error: aptError } = await supabase
                 .from('appointments')
                 .select('*')
                 .eq('user_id', user.id)
                 .order('appointment_date', { ascending: true });
 
             if (aptError) throw aptError;
+
+            // --- AUTO-EXPIRE stale PENDING appointments ---
+            const now = new Date();
+            const stale = (aptData || []).filter(apt => {
+                if (apt.status !== 'PENDING') return false;
+                const [time, meridiem] = apt.appointment_time.split(' ');
+                let [h, m] = time.split(':').map(Number);
+                if (meridiem === 'PM' && h !== 12) h += 12;
+                if (meridiem === 'AM' && h === 12) h = 0;
+                const aptDt = new Date(`${apt.appointment_date}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`);
+                return aptDt < now;
+            });
+
+            if (stale.length > 0) {
+                const staleIds = stale.map(a => a.id);
+                await supabase
+                    .from('appointments')
+                    .update({ status: 'EXPIRED' })
+                    .in('id', staleIds);
+                aptData = aptData.map(a => staleIds.includes(a.id) ? { ...a, status: 'EXPIRED' } : a);
+            }
+
             setAppointments(aptData || []);
         } catch (err) {
             console.error("Data fetch error:", err.message);
@@ -101,7 +123,7 @@ export default function MyAppointments() {
             return matchesSearch && (status === 'CONFIRMED' || status === 'PENDING');
         }
         if (activeTab === 'Past History') {
-            return matchesSearch && status === 'COMPLETED';
+            return matchesSearch && (status === 'COMPLETED' || status === 'EXPIRED');
         }
         if (activeTab === 'Cancelled') {
             return matchesSearch && status === 'CANCELLED';
@@ -157,7 +179,9 @@ export default function MyAppointments() {
                                             <div className="space-y-1 flex-1">
                                                 <span className={`info-chip px-3 py-1 rounded-full text-[10px] font-bold tracking-wider inline-block mb-2 md:mb-3 ${apt.status === 'CONFIRMED' ? 'bg-emerald-50 text-emerald-600' :
                                                     apt.status === 'PENDING' ? 'bg-amber-50 text-amber-600' :
-                                                        apt.status === 'CANCELLED' ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-600'
+                                                        apt.status === 'CANCELLED' ? 'bg-red-50 text-red-600' :
+                                                            apt.status === 'EXPIRED' ? 'bg-slate-100 text-slate-400' :
+                                                                'bg-slate-100 text-slate-600'
                                                     }`}>
                                                     {apt.status}
                                                 </span>
@@ -231,7 +255,8 @@ export default function MyAppointments() {
                                         <div>
                                             <p className="text-slate-400 mb-1">Status</p>
                                             <p className={`font-bold uppercase tracking-wider ${selectedApt.status === 'CONFIRMED' ? 'text-emerald-600' :
-                                                selectedApt.status === 'PENDING' ? 'text-amber-600' : 'text-red-500'
+                                                selectedApt.status === 'PENDING' ? 'text-amber-600' :
+                                                    selectedApt.status === 'EXPIRED' ? 'text-slate-400' : 'text-red-500'
                                                 }`}>
                                                 {selectedApt.status}
                                             </p>
