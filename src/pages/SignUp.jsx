@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, EyeOff, ShieldCheck, Check, Loader2, Mail, ArrowRight, AlertTriangle } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck, Check, Loader2, Mail, ArrowRight, AlertTriangle, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useToast } from '../lib/ToastContext.jsx';
@@ -13,15 +13,18 @@ export default function SignUp() {
 
     // UI States
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
     const [isSent, setIsSent] = useState(false);
+    const [showTerms, setShowTerms] = useState(false);
 
     // Form States
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [agreed, setAgreed] = useState(false);
 
     const requirements = [
@@ -32,10 +35,11 @@ export default function SignUp() {
     ];
 
     const strength = requirements.filter(req => req.met).length + (password.length > 0 ? 1 : 0);
+    const passwordsMatch = password === confirmPassword && confirmPassword !== "";
 
     const handleSignUp = async (e) => {
         e.preventDefault();
-        if (strength < 5) return;
+        if (strength < 5 || !passwordsMatch) return;
 
         setLoading(true);
         setErrorMsg("");
@@ -45,12 +49,11 @@ export default function SignUp() {
                 email: email,
                 password: password,
                 options: {
-                    // Site URL must be set to http://localhost:5173 in Supabase Dashboard
                     data: {
                         full_name: fullName,
-                        email: email, // Passed here so Trigger can read it from raw_user_meta_data
+                        email: email,
                         phone: `+63${phone}`,
-                        role: 'client' // Changed to 'client' as requested
+                        role: 'client'
                     },
                 },
             });
@@ -199,26 +202,64 @@ export default function SignUp() {
                                         )}
                                     </div>
 
+                                    {/* --- CONFIRM PASSWORD FIELD --- */}
+                                    <div className="auth-form-field">
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Confirm Password</label>
+                                        <div className="relative">
+                                            <input
+                                                required
+                                                type={showConfirmPassword ? "text" : "password"}
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                placeholder="••••••••"
+                                                className={`w-full p-4 bg-slate-50 border-2 rounded-2xl outline-none font-bold text-sm transition-all focus:border-black ${confirmPassword.length > 0 ? (passwordsMatch ? "border-emerald-200 bg-emerald-50/30" : "border-red-100") : "border-slate-100"}`}
+                                            />
+                                            <div
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 cursor-pointer hover:text-black"
+                                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            >
+                                                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </div>
+                                        </div>
+                                        {confirmPassword.length > 0 && !passwordsMatch && (
+                                            <p className="text-[8px] font-black uppercase text-red-500 mt-2 ml-1 tracking-widest">Passwords do not match</p>
+                                        )}
+                                    </div>
+
                                     <div className="flex items-center gap-3 px-1">
                                         <input
                                             type="checkbox"
                                             id="terms"
-                                            className="w-4 h-4 rounded border-2 border-slate-200 checked:bg-black transition-all"
+                                            className="w-4 h-4 rounded border-2 border-slate-200 checked:bg-black transition-all cursor-pointer"
                                             required
                                             checked={agreed}
                                             onChange={(e) => setAgreed(e.target.checked)}
                                         />
                                         <label htmlFor="terms" className="text-[9px] font-bold text-slate-500 uppercase tracking-tight">
-                                            I agree to the <span className="text-black font-black underline">Terms</span> and <span className="text-black font-black underline">Privacy Policy</span>.
+                                            I agree to the
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowTerms(true)}
+                                                className="text-black font-black underline ml-1 hover:text-emerald-600 transition-colors"
+                                            >
+                                                Terms
+                                            </button> and
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowTerms(true)}
+                                                className="text-black font-black underline ml-1 hover:text-emerald-600 transition-colors"
+                                            >
+                                                Privacy Policy
+                                            </button>.
                                         </label>
                                     </div>
 
                                     <button
                                         type="submit"
-                                        className={`w-full py-5 rounded-[2rem] font-black uppercase text-[11px] tracking-[0.25em] transition-all flex items-center justify-center gap-3 shadow-xl ${strength === 5 && agreed ? 'bg-black text-white hover:bg-emerald-600' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}`}
-                                        disabled={strength < 5 || !agreed || loading}
+                                        className={`w-full py-5 rounded-[2rem] font-black uppercase text-[11px] tracking-[0.25em] transition-all flex items-center justify-center gap-3 shadow-xl ${strength === 5 && agreed && passwordsMatch ? 'bg-black text-white hover:bg-emerald-600' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}`}
+                                        disabled={strength < 5 || !agreed || !passwordsMatch || loading}
                                     >
-                                        {loading ? <Loader2 size={18} className="animate-spin" /> : "Authorize Registration"}
+                                        {loading ? <Loader2 size={18} className="animate-spin" /> : "CREATE ACCOUNT"}
                                     </button>
                                 </form>
 
@@ -247,6 +288,66 @@ export default function SignUp() {
                         <p className="text-[10px] font-black text-white uppercase tracking-widest">Join 2,000+ Verified Applicants</p>
                     </div>
                 </div>
+
+                {/* --- TERMS & PRIVACY MODAL --- */}
+                {showTerms && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+                        <div
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+                            onClick={() => setShowTerms(false)}
+                        />
+
+                        <div className="relative bg-white w-full max-w-lg max-h-[85vh] rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
+                            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
+                                <div>
+                                    <h3 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900">Legal Terms</h3>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">MJY 88 Medical Clinic & CareSync</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowTerms(false)}
+                                    className="p-3 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-black"
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+
+                            <div className="p-8 overflow-y-auto custom-scrollbar text-slate-600 space-y-6">
+                                <section>
+                                    <h4 className="text-[11px] font-black uppercase tracking-widest text-black mb-2">1. Information Collection</h4>
+                                    <p className="text-xs leading-relaxed font-medium">
+                                        We collect personal data including your full name, contact information, and medical history exclusively for the purpose of LTO medical certification.
+                                    </p>
+                                </section>
+                                <section>
+                                    <h4 className="text-[11px] font-black uppercase tracking-widest text-black mb-2">2. Data Security</h4>
+                                    <p className="text-xs leading-relaxed font-medium">
+                                        Your data is encrypted and stored securely. We comply with the Data Privacy Act to ensure your sensitive medical information is never shared with third parties without consent.
+                                    </p>
+                                </section>
+                                <section>
+                                    <h4 className="text-[11px] font-black uppercase tracking-widest text-black mb-2">3. Accuracy of Data</h4>
+                                    <p className="text-xs leading-relaxed font-medium">
+                                        By registering, you certify that all provided details are true. Providing false medical information is a violation of LTO policies and may result in legal action.
+                                    </p>
+                                </section>
+                                <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100">
+                                    <p className="text-[10px] font-bold text-emerald-700 leading-normal uppercase tracking-wider">
+                                        Verification required: You must verify your email address to complete the registration process.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="p-6 bg-slate-50 flex justify-end">
+                                <button
+                                    onClick={() => setShowTerms(false)}
+                                    className="px-10 py-4 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-600 transition-all shadow-lg"
+                                >
+                                    I Understand
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </PageTransition>
     );
