@@ -8,6 +8,7 @@ import QRCode from 'qrcode';
 import { supabase } from '../supabaseClient';
 import { useToast } from '../lib/ToastContext.jsx';
 import PageTransition from "../components/layout/PageTransition.jsx";
+import ClientLayout from "../components/layout/ClientLayout.jsx";
 import '../styles/client-portal.css';
 import './BookAppointment.css';
 
@@ -190,12 +191,6 @@ export default function BookAppointment() {
     const timeSlots = generateTimeSlots();
     const totalDue = 600;
 
-    const navItems = [
-        { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-        { name: 'Book Appointment', icon: CalendarPlus, path: '/book' },
-        { name: 'My Appointments', icon: ClipboardList, path: '/appointments' },
-    ];
-
     const paymentOptions = [
         { id: 'gcash', name: 'GCash', img: 'https://upload.wikimedia.org/wikipedia/commons/e/eb/GCash_logo.svg' },
         { id: 'maya', name: 'Maya', img: 'https://upload.wikimedia.org/wikipedia/commons/9/9a/Maya_logo.7ca0979f.png' },
@@ -206,63 +201,23 @@ export default function BookAppointment() {
 
     return (
         <PageTransition>
-            <div className="client-layout">
-                {/* SIDEBAR */}
-                <aside className="client-sidebar">
-                    <div className="space-y-10">
-                        <Link to="/" className="flex items-center gap-3 px-2 group">
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shrink-0">
-                                <img src="/mjylogo.png" alt="M" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="flex flex-col text-white font-black uppercase tracking-tight leading-none">
-                                <span className="text-lg tracking-tighter">CareSync</span>
-                                <span className="text-slate-500 text-[9px] tracking-[0.2em] mt-1 font-black">Client Portal</span>
-                            </div>
-                        </Link>
-                        <nav className="sidebar-nav">
-                            {navItems.map((item) => (
-                                <Link key={item.name} to={item.path} className={`sidebar-nav-link ${location.pathname === item.path ? 'sidebar-nav-link--active' : ''}`}>
-                                    <item.icon size={20} className={location.pathname === item.path ? 'sidebar-nav-icon--active' : 'sidebar-nav-icon'} />
-                                    <span className="sidebar-nav-label">{item.name}</span>
-                                </Link>
-                            ))}
-                        </nav>
-                    </div>
-                    <div className="sidebar-bottom">
-                        <Link to="/settings" className="sidebar-settings-link"><Settings size={20} /> <span className="text-sm font-medium">Settings</span></Link>
-                        <div className="sidebar-user-section">
-                            <div className="flex items-center gap-3">
-                                <div className="sidebar-avatar bg-slate-800 flex items-center justify-center rounded-full w-10 h-10">
-                                    {isUserLoading ? <Loader2 size={16} className="animate-spin text-slate-500" /> : <User className="text-slate-400" size={20} />}
-                                </div>
-                                <div className="flex flex-col overflow-hidden">
-                                    <span className="sidebar-user-name text-white truncate w-24">{isUserLoading ? "..." : userName}</span>
-                                    <span className="sidebar-user-role text-slate-500 text-[10px]">Client Account</span>
-                                </div>
-                            </div>
-                            <button onClick={handleLogout} className="sidebar-logout-btn bg-transparent border-none text-slate-400 hover:text-red-400 cursor-pointer p-1">
-                                <LogOut size={18} />
-                            </button>
-                        </div>
-                    </div>
-                </aside>
-
-                <main className="main-content-split">
-                    <div className="flex-1 space-y-12">
+            <ClientLayout title={rescheduleData ? 'Reschedule Appointment' : 'Book Appointment'}>
+                <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 w-full max-w-7xl mx-auto">
+                    <div className="flex-1 space-y-8 md:space-y-12">
                         {currentStep < 4 && (
                             <>
                                 <header className="book-header">
                                     <h1 className="page-title">{rescheduleData ? 'Reschedule Appointment' : 'Book an Appointment'}</h1>
                                     <p className="book-step-text">Step {currentStep} of 4</p>
                                 </header>
-                                <div className="stepper">
-                                    {['PURPOSE', 'DATE & TIME', 'PAYMENT METHOD', 'CONFIRMATION'].map((label, idx) => (
-                                        <div key={label} className="flex items-center gap-3">
+                                <div className="stepper flex-wrap gap-y-4">
+                                    {['PURPOSE', 'DATE & TIME', 'PAYMENT', 'CONFIRM'].map((label, idx) => (
+                                        <div key={label} className="flex items-center gap-2 md:gap-3">
                                             <div className={`stepper-circle ${currentStep >= idx + 1 ? 'stepper-circle--active' : 'stepper-circle--inactive'}`}>
                                                 {currentStep > idx + 1 ? <Check size={14} /> : idx + 1}
                                             </div>
-                                            <span className={`stepper-label ${currentStep >= idx + 1 ? 'text-black' : 'text-slate-400'}`}>{label}</span>
-                                            {idx !== 3 && <div className={`stepper-connector ${currentStep > idx + 1 ? 'bg-black' : 'bg-slate-100'}`} />}
+                                            <span className={`stepper-label hidden sm:inline-block ${currentStep >= idx + 1 ? 'text-black' : 'text-slate-400'}`}>{label}</span>
+                                            {idx !== 3 && <div className={`stepper-connector hidden md:block ${currentStep > idx + 1 ? 'bg-black' : 'bg-slate-100'}`} />}
                                         </div>
                                     ))}
                                 </div>
@@ -272,10 +227,10 @@ export default function BookAppointment() {
                         {/* STEP 1: PURPOSE */}
                         {currentStep === 1 && (
                             <section className="step-animate-fade">
-                                <h3 className="section-title"><ClipboardList size={20} /> Step 1: Purpose</h3>
-                                <div className="purpose-grid">
+                                <h3 className="section-title mb-6"><ClipboardList size={20} /> Step 1: Purpose</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {['Student', 'Non-Professional', 'Professional', 'Conversion'].map((p) => (
-                                        <button key={p} onClick={() => setPurpose(p)} className={`purpose-card ${purpose === p ? 'purpose-card--selected' : ''}`}>{p}</button>
+                                        <button key={p} onClick={() => setPurpose(p)} className={`purpose-card w-full text-left ${purpose === p ? 'purpose-card--selected' : ''}`}>{p}</button>
                                     ))}
                                 </div>
                             </section>
@@ -427,7 +382,7 @@ export default function BookAppointment() {
 
                     {/* SUMMARY SIDEBAR */}
                     {currentStep < 4 && (
-                        <aside className="summary-sidebar">
+                        <aside className="w-full lg:w-80 space-y-6 lg:space-y-8 h-fit lg:sticky lg:top-8 mt-8 lg:mt-0 order-first lg:order-none mb-8 lg:mb-0">
                             <div className="summary-card">
                                 <h4 className="form-label">Summary</h4>
                                 <div className="space-y-4">
@@ -439,12 +394,12 @@ export default function BookAppointment() {
                                         <p className="text-[10px] text-slate-400 mt-1">{selectedTime}</p>
                                     </div>
                                 </div>
-                                <div className="summary-total-row"><p className="summary-total-label">Total</p><p className="summary-total-value">₱{totalDue}.00</p></div>
+                                <div className="summary-total-row flex justify-between items-center mt-6 pt-6 border-t border-slate-200"><p className="summary-total-label font-bold">Total</p><p className="summary-total-value font-black text-xl">₱{totalDue}.00</p></div>
                             </div>
                         </aside>
                     )}
-                </main>
-            </div>
+                </div>
+            </ClientLayout>
         </PageTransition>
     );
 }

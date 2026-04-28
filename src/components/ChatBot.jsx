@@ -5,7 +5,7 @@ import './ChatBot.css';
 const FAQ_DATA = [
   {
     keywords: ['hello', 'hi', 'hey', 'good morning', 'good afternoon'],
-    answer: "Hello!  Welcome to MIY 88 Medical Clinic. How can I help you today?",
+    answer: "Hello!  Welcome to MJY 88 Medical Clinic. How can I help you today?",
   },
   {
     keywords: ['hour', 'hours', 'open', 'close', 'schedule', 'time', 'when'],
@@ -25,7 +25,7 @@ const FAQ_DATA = [
   },
   {
     keywords: ['location', 'address', 'where', 'direction', 'map', 'find'],
-    answer: " We're located at MIY 88 Medical Clinic. For exact directions, check the Contact section on our website or search for us on Google Maps!",
+    answer: " We're located at MJY 88 Medical Clinic. For exact directions, check the Contact section on our website or search for us on Google Maps!",
   },
   {
     keywords: ['contact', 'phone', 'email', 'call', 'reach'],

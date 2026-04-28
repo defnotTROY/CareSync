@@ -54,3 +54,30 @@ CREATE TRIGGER on_auth_user_created
 -- Stores the base64 QR code data URL generated after booking.
 -- The QR code encodes only the appointment ID for staff check-in scanning.
 ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS qr_code text;
+
+-- ============================================
+-- MIGRATION: Create scan_logs table for failed QR scans
+-- ============================================
+-- Logs every rejected QR scan attempt for audit and debugging.
+-- Reasons include: INVALID_QR_FORMAT, APPOINTMENT_NOT_FOUND,
+--                  TOO_EARLY, TOO_LATE, INVALID_DATETIME_IN_RECORD
+CREATE TABLE IF NOT EXISTS public.scan_logs (
+  id            uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  appointment_id uuid REFERENCES public.appointments(id) ON DELETE SET NULL,
+  reason        text NOT NULL,
+  scanned_at    timestamp with time zone NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.scan_logs ENABLE ROW LEVEL SECURITY;
+
+-- Only staff/admin can read scan logs
+CREATE POLICY "Staff can view scan logs"
+ON public.scan_logs FOR SELECT
+USING (
+  (SELECT role FROM public.profiles WHERE id = auth.uid()) IN ('staff', 'admin')
+);
+
+-- Allow insert from authenticated users (the scan handler runs as auth'd staff)
+CREATE POLICY "Authenticated users can insert scan logs"
+ON public.scan_logs FOR INSERT
+WITH CHECK (auth.uid() IS NOT NULL);

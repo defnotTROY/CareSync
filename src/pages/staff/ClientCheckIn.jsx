@@ -4,7 +4,7 @@ import {
     LayoutDashboard, UserCheck, Users, CalendarDays,
     CreditCard, FileText, Camera, Search, Bell, LogOut,
     CheckCircle2, AlertCircle, Settings, UserPlus, Loader2,
-    Calendar, Clock, X, Sparkles, ScanLine
+    Calendar, Clock, X, Sparkles, ScanLine, ShieldAlert, Timer
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { supabase } from '../../lib/supabase.js';
@@ -47,6 +47,7 @@ export default function ClientCheckIn() {
     const scannerContainerId = 'qr-scanner-container';
     const [scanStatus, setScanStatus] = useState('idle');
     const [scanMessage, setScanMessage] = useState('');
+    const [scanMessageDetail, setScanMessageDetail] = useState('');
     const [scanLoading, setScanLoading] = useState(false);
 
     const allProceduresDone = Object.values(procedures).every(Boolean);
@@ -79,26 +80,100 @@ export default function ClientCheckIn() {
         }
     }, []);
 
+    // --- QR TIME-WINDOW VALIDATION (±30 minutes) ---
+    const WINDOW_MINUTES = 30;
+
+    const logFailedScan = async (appointmentId, reason) => {
+        try {
+            await supabase.from('scan_logs').insert({
+                appointment_id: appointmentId || null,
+                reason,
+                scanned_at: new Date().toISOString(),
+            });
+        } catch (_) { /* non-blocking — silently ignore log failures */ }
+    };
+
     const handleQrScanSuccess = useCallback(async (decodedText) => {
         await stopScanner();
         setScanLoading(false);
         setScanStatus('scanning');
+        setScanMessage('');
+        setScanMessageDetail('');
+
+        const rawId = decodedText.trim();
+
+        // Guard: reject obviously invalid payloads (must be UUID-like)
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(rawId)) {
+            await logFailedScan(null, 'INVALID_QR_FORMAT');
+            setScanStatus('error');
+            setScanMessage('Invalid or Tampered QR Code');
+            setScanMessageDetail('This QR code does not match the expected format. Please use the QR code provided at booking.');
+            return;
+        }
+
         try {
             const { data: appointment, error: aptError } = await supabase
                 .from('appointments')
                 .select('*, profiles:user_id (id, full_name)')
-                .eq('id', decodedText.trim())
+                .eq('id', rawId)
                 .single();
 
             if (aptError || !appointment) {
+                await logFailedScan(rawId, 'APPOINTMENT_NOT_FOUND');
                 setScanStatus('error');
-                setScanMessage('Invalid QR or Not Found');
+                setScanMessage('Appointment Not Found');
+                setScanMessageDetail('No appointment record matches this QR code. It may have been cancelled or deleted.');
                 return;
             }
 
+            // --- TIME-WINDOW CHECK ---
+            // Combine date + time strings into a single Date object
+            const aptDateTime = new Date(`${appointment.appointment_date}T${appointment.appointment_time}`);
+
+            if (isNaN(aptDateTime.getTime())) {
+                await logFailedScan(rawId, 'INVALID_DATETIME_IN_RECORD');
+                setScanStatus('error');
+                setScanMessage('Appointment Data Error');
+                setScanMessageDetail('The appointment date/time stored in the system is invalid. Please contact an administrator.');
+                return;
+            }
+
+            const now = new Date();
+            const diffMs = now - aptDateTime;                 // positive = after apt, negative = before apt
+            const diffMinutes = diffMs / 60000;
+
+            if (diffMinutes < -WINDOW_MINUTES) {
+                // Too early
+                const minsUntil = Math.ceil(-diffMinutes - WINDOW_MINUTES);
+                const reason = `TOO_EARLY (${Math.round(-diffMinutes)} min before apt)`;
+                await logFailedScan(rawId, reason);
+                setScanStatus('error');
+                setScanMessage('Too Early to Check In');
+                setScanMessageDetail(`Check-in opens 30 minutes before your appointment. Please come back in ${minsUntil} minute${minsUntil !== 1 ? 's' : ''}.`);
+                return;
+            }
+
+            if (diffMinutes > WINDOW_MINUTES) {
+                // Too late / expired
+                const minsLate = Math.floor(diffMinutes - WINDOW_MINUTES);
+                const reason = `TOO_LATE (${Math.round(diffMinutes)} min after apt)`;
+                await logFailedScan(rawId, reason);
+                setScanStatus('error');
+                setScanMessage('Check-in Window Expired');
+                setScanMessageDetail(`This appointment's check-in window closed ${minsLate} minute${minsLate !== 1 ? 's' : ''} ago. Please speak with a staff member for assistance.`);
+                return;
+            }
+
+            // --- WITHIN WINDOW: proceed normally ---
             setSelectedApt(appointment);
             setScanStatus('found');
-        } catch (err) { setScanStatus('error'); }
+        } catch (err) {
+            console.error('QR scan error:', err);
+            setScanStatus('error');
+            setScanMessage('Scan Failed');
+            setScanMessageDetail('An unexpected error occurred. Please try again.');
+        }
     }, [stopScanner]);
 
     useEffect(() => {
@@ -232,8 +307,28 @@ export default function ClientCheckIn() {
 
                                 <div className="p-8">
                                     {activeTab === 'scan' ? (
-                                        <div id={scannerContainerId} className="aspect-square bg-slate-50 rounded-3xl overflow-hidden relative">
-                                            {scanLoading && <div className="absolute inset-0 flex items-center justify-center bg-black/10"><Loader2 className="animate-spin" /></div>}
+                                        <div className="space-y-4">
+                                            {scanStatus === 'error' ? (
+                                                <div className="bg-red-50 border-2 border-red-200 rounded-3xl p-6 flex flex-col items-center text-center gap-3">
+                                                    <ShieldAlert size={40} className="text-red-500" />
+                                                    <div>
+                                                        <p className="font-black uppercase text-sm text-red-700">{scanMessage}</p>
+                                                        {scanMessageDetail && (
+                                                            <p className="text-[11px] text-red-500 mt-1 leading-relaxed max-w-xs mx-auto">{scanMessageDetail}</p>
+                                                        )}
+                                                    </div>
+                                                    <button
+                                                        onClick={() => { setScanStatus('idle'); setScanMessage(''); setScanMessageDetail(''); }}
+                                                        className="mt-2 px-6 py-3 bg-black text-white text-[10px] font-black uppercase tracking-widest rounded-2xl"
+                                                    >
+                                                        Scan Again
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div id={scannerContainerId} className="aspect-square bg-slate-50 rounded-3xl overflow-hidden relative">
+                                                    {scanLoading && <div className="absolute inset-0 flex items-center justify-center bg-black/10"><Loader2 className="animate-spin" /></div>}
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="space-y-6">
