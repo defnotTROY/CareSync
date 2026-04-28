@@ -129,7 +129,11 @@ export default function ClientCheckIn() {
 
             // --- TIME-WINDOW CHECK ---
             // Combine date + time strings into a single Date object
-            const aptDateTime = new Date(`${appointment.appointment_date}T${appointment.appointment_time}`);
+            const [timeStr, meridiem] = appointment.appointment_time.split(' ');
+            let [h, m] = timeStr.split(':').map(Number);
+            if (meridiem === 'PM' && h !== 12) h += 12;
+            if (meridiem === 'AM' && h === 12) h = 0;
+            const aptDateTime = new Date(`${appointment.appointment_date}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`);
 
             if (isNaN(aptDateTime.getTime())) {
                 await logFailedScan(rawId, 'INVALID_DATETIME_IN_RECORD');

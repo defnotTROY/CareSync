@@ -6,6 +6,7 @@ import {
     Loader2, Clock, RefreshCw, Wallet, Check
 } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
+import { useLiveQueue } from '../../hooks/useLiveQueue.js';
 import PageTransition from "../../components/layout/PageTransition.jsx";
 import '../../styles/staff-portal.css';
 import './ClientQueue.css';
@@ -16,10 +17,9 @@ export default function ClientQueue() {
 
     const [staffName, setStaffName] = useState("Staff");
     const [staffLoading, setStaffLoading] = useState(true);
-    const [waitingQueue, setWaitingQueue] = useState([]);
-    const [servingNow, setServingNow] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [actioningId, setActioningId] = useState(null);
+
+    const { waitingQueue, servingNow, loading, refresh } = useLiveQueue();
 
     const navItems = [
         { name: 'Dashboard', icon: LayoutDashboard, path: '/staff/dashboard' },
@@ -33,25 +33,6 @@ export default function ClientQueue() {
 
     useEffect(() => {
         fetchStaffInfo();
-        fetchQueueData();
-
-        const channel = supabase
-            .channel('staff-live-sync')
-            .on('postgres_changes',
-                { event: '*', schema: 'public', table: 'appointments' },
-                (payload) => {
-                    // Force remove if status is COMPLETED
-                    if (payload.new && payload.new.status === 'COMPLETED') {
-                        setWaitingQueue(prev => prev.filter(a => a.id !== payload.new.id));
-                        setServingNow(prev => prev.filter(a => a.id !== payload.new.id));
-                    } else {
-                        fetchQueueData();
-                    }
-                }
-            )
-            .subscribe();
-
-        return () => supabase.removeChannel(channel);
     }, []);
 
     async function fetchStaffInfo() {
@@ -68,44 +49,6 @@ export default function ClientQueue() {
         } catch (err) { console.error(err); }
         finally { setStaffLoading(false); }
     }
-
-    async function fetchQueueData() {
-        try {
-            setLoading(true);
-            const { data: appointments, error } = await supabase
-                .from('appointments')
-                .select('*')
-                .in('status', ['ON_CASHIER', 'CHECKED_IN', 'ON_DOCTOR', 'IN_PROGRESS'])
-                .order('created_at', { ascending: true });
-
-            if (error) throw error;
-
-            if (!appointments || appointments.length === 0) {
-                setWaitingQueue([]);
-                setServingNow([]);
-                return;
-            }
-
-            const userIds = [...new Set(appointments.map(a => a.user_id).filter(Boolean))];
-            const { data: profiles } = await supabase
-                .from('profiles')
-                .select('id, full_name')
-                .in('id', userIds);
-
-            const merged = appointments.map(apt => ({
-                ...apt,
-                profiles: (profiles || []).find(p => String(p.id) === String(apt.user_id)) || { full_name: "Unknown Patient" }
-            }));
-
-            setWaitingQueue(merged.filter(a => a.status === 'ON_CASHIER'));
-            setServingNow(merged.filter(a => ['CHECKED_IN', 'ON_DOCTOR', 'IN_PROGRESS'].includes(a.status)));
-        } catch (err) {
-            console.error("Queue fetch error:", err.message);
-        } finally {
-            setLoading(false);
-        }
-    }
-
     const handleMoveToDoctor = async (id) => {
         setActioningId(id);
         try {
@@ -118,7 +61,7 @@ export default function ClientQueue() {
                 })
                 .eq('id', id);
 
-            fetchQueueData();
+            refresh();
         } catch (err) { console.error(err); }
         finally { setActioningId(null); }
     };
@@ -127,7 +70,7 @@ export default function ClientQueue() {
         setActioningId(id);
         try {
             await supabase.from('appointments').update({ status: 'COMPLETED' }).eq('id', id);
-            fetchQueueData();
+            refresh();
         } catch (err) { console.error(err); }
         finally { setActioningId(null); }
     };
@@ -186,7 +129,7 @@ export default function ClientQueue() {
                             <h1 className="text-5xl font-black text-slate-900 uppercase tracking-tighter leading-none italic">Live Queue</h1>
                             <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mt-2">Live Center Management</p>
                         </div>
-                        <button onClick={fetchQueueData} className="px-6 py-3 bg-white border-2 border-slate-50 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:border-black shadow-sm transition-all">
+                        <button onClick={refresh} className="px-6 py-3 bg-white border-2 border-slate-50 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:border-black shadow-sm transition-all">
                             <RefreshCw size={14} /> Refresh
                         </button>
                     </div>

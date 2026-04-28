@@ -32,9 +32,9 @@ export default function Hero() {
                     <button className="px-8 py-4 bg-slate-900 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all">
                         Book Appointment <ArrowRight size={18} />
                     </button>
-                    <button className="px-8 py-4 border-2 border-slate-200 text-slate-900 rounded-xl font-bold hover:bg-slate-50 transition-all">
+                    <a href="#live-queue" className="px-8 py-4 border-2 border-slate-200 text-slate-900 rounded-xl font-bold hover:bg-slate-50 transition-all flex items-center justify-center">
                         View Live Queue
-                    </button>
+                    </a>
                 </div>
             </div>
 

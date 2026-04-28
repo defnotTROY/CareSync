@@ -20,9 +20,7 @@ export default function Footer() {
                         <button className="px-8 py-4 bg-white text-black rounded-xl font-bold hover:bg-slate-100 transition-all">
                             Book an Appointment Now
                         </button>
-                        <button className="px-8 py-4 border border-slate-700 text-white rounded-xl font-bold hover:bg-slate-900 transition-all">
-                            Contact Support
-                        </button>
+
                     </div>
                 </div>
             </div>

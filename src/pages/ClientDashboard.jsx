@@ -50,14 +50,40 @@ export default function ClientDashboard() {
                 .single();
             if (profile) setUserName(profile.full_name);
 
-            // 3. Fetch the nearest upcoming appointment
-            // We look for PENDING or CONFIRMED and grab the one with the closest date
+            // 3. Auto-expire stale PENDING appointments before showing upcoming
+            const now = new Date();
+            const { data: pendingApts } = await supabase
+                .from('appointments')
+                .select('id, appointment_date, appointment_time, status')
+                .eq('user_id', user.id)
+                .eq('status', 'PENDING');
+
+            if (pendingApts && pendingApts.length > 0) {
+                const stale = pendingApts.filter(apt => {
+                    const [time, meridiem] = apt.appointment_time.split(' ');
+                    let [h, m] = time.split(':').map(Number);
+                    if (meridiem === 'PM' && h !== 12) h += 12;
+                    if (meridiem === 'AM' && h === 12) h = 0;
+                    const aptDt = new Date(`${apt.appointment_date}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`);
+                    return aptDt < now;
+                });
+
+                if (stale.length > 0) {
+                    await supabase
+                        .from('appointments')
+                        .update({ status: 'EXPIRED' })
+                        .in('id', stale.map(a => a.id));
+                }
+            }
+
+            // 4. Fetch the nearest upcoming appointment (use local date, not UTC)
+            const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
             const { data: appointments, error: aptError } = await supabase
                 .from('appointments')
                 .select('*')
                 .eq('user_id', user.id)
                 .in('status', ['PENDING', 'CONFIRMED'])
-                .gte('appointment_date', new Date().toISOString().split('T')[0]) // Only today or future
+                .gte('appointment_date', localToday)
                 .order('appointment_date', { ascending: true })
                 .limit(1);
 

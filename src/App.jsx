@@ -65,6 +65,8 @@ function PageLoader() {
   );
 }
 
+import LiveQueue from "./components/home/LiveQueue.jsx";
+
 // --- KEEP YOUR LANDING PAGE BELOW IT ---
 function LandingPage() {
   return (
@@ -73,6 +75,7 @@ function LandingPage() {
       <main>
         <Hero />
         <Specializations />
+        <LiveQueue />
         <WhyChooseUs />
       </main>
       <Footer />
