@@ -408,10 +408,10 @@ export default function StaffDashboard() {
                                     className="flex-1 bg-black text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                                 >
                                     {isProcessing ? (
-                                        <Loader2 size={18} className="animate-spin" />
+                                        <Loader2 size={20} className="animate-spin" />
                                     ) : (
                                         <>
-                                            <Check size={18} />
+                                            <Check size={0} />
                                             Confirm Appointment
                                         </>
                                     )}
