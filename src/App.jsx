@@ -7,12 +7,12 @@ import { AuthProvider } from './lib/AuthContext.jsx';
 import { ToastProvider } from './lib/ToastContext.jsx';
 import ProtectedRoute from './components/layout/ProtectedRoute.jsx';
 
-// Layout components (kept eager — used on landing page)
+// Layout components
 import Navbar from "./components/layout/Navbar.jsx";
 import Footer from "./components/layout/Footer.jsx";
 import ChatBot from "./components/ChatBot.jsx";
 
-// Home components (kept eager — used on landing page)
+// Home components
 import Hero from "./components/home/Hero.jsx";
 import Specializations from "./components/home/Specializations.jsx";
 import WhyChooseUs from "./components/home/WhyChooseUs.jsx";
@@ -23,6 +23,7 @@ const SignUp = lazy(() => import("./pages/SignUp.jsx"));
 const ClientDashboard = lazy(() => import("./pages/ClientDashboard.jsx"));
 const BookAppointment = lazy(() => import("./pages/BookAppointment.jsx"));
 const MyAppointments = lazy(() => import("./pages/MyAppointments.jsx"));
+const ClientSettings = lazy(() => import("./pages/Settings.jsx")); // Added Client Settings
 
 // Staff Pages
 const StaffDashboard = lazy(() => import("./pages/staff/StaffDashboard.jsx"));
@@ -53,9 +54,7 @@ function PageLoader() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC]">
       <div className="w-16 h-16 mb-4 relative">
-        {/* Static Background Circle */}
         <div className="absolute inset-0 border-4 border-slate-100 rounded-full"></div>
-        {/* Animated Spinning Top Border */}
         <div className="absolute inset-0 border-4 border-black rounded-full border-t-transparent animate-spin"></div>
       </div>
       <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
@@ -67,7 +66,6 @@ function PageLoader() {
 
 import LiveQueue from "./components/home/LiveQueue.jsx";
 
-// --- KEEP YOUR LANDING PAGE BELOW IT ---
 function LandingPage() {
   return (
     <>
@@ -98,6 +96,7 @@ function AnimatedRoutes() {
         <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['client', 'admin']}><ClientDashboard /></ProtectedRoute>} />
         <Route path="/book" element={<ProtectedRoute allowedRoles={['client', 'admin']}><BookAppointment /></ProtectedRoute>} />
         <Route path="/appointments" element={<ProtectedRoute allowedRoles={['client', 'admin']}><MyAppointments /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute allowedRoles={['client', 'admin']}><ClientSettings /></ProtectedRoute>} /> {/* Added this line */}
 
         {/* Staff / Reception Terminal Routes */}
         <Route path="/staff/dashboard" element={<ProtectedRoute allowedRoles={['staff', 'admin']}><StaffDashboard /></ProtectedRoute>} />
@@ -127,7 +126,6 @@ function AnimatedRoutes() {
   );
 }
 
-// Only show chatbot on client-facing pages (not staff/doctor/admin)
 function ClientChatBot() {
   const location = useLocation();
   const isStaffOrDoctorOrAdmin =

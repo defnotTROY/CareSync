@@ -24,12 +24,14 @@ export default function ClientSidebar({ isOpen, onClose }) {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
+                    // Updated to fetch 'first_name' instead of 'full_name'
                     const { data: profile } = await supabase
                         .from('profiles')
-                        .select('full_name')
+                        .select('first_name')
                         .eq('id', user.id)
                         .single();
-                    if (profile) setUserName(profile.full_name);
+
+                    if (profile) setUserName(profile.first_name);
                 }
             } catch (err) {
                 console.error(err);
@@ -55,7 +57,7 @@ export default function ClientSidebar({ isOpen, onClose }) {
         <>
             {/* Mobile Backdrop */}
             {isOpen && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/50 z-40 md:hidden"
                     onClick={onClose}
                 />
@@ -89,9 +91,9 @@ export default function ClientSidebar({ isOpen, onClose }) {
                         {navItems.map((item) => {
                             const isActive = location.pathname === item.path;
                             return (
-                                <Link 
-                                    key={item.name} 
-                                    to={item.path} 
+                                <Link
+                                    key={item.name}
+                                    to={item.path}
                                     className={`
                                         flex items-center gap-4 py-3.5 rounded-xl transition-all w-full
                                         ${isActive ? 'bg-white text-black font-bold shadow-lg shadow-white/5' : 'text-slate-400 hover:text-white hover:bg-white/5'}
@@ -112,10 +114,10 @@ export default function ClientSidebar({ isOpen, onClose }) {
 
                 <div className="sidebar-bottom space-y-6 w-full flex flex-col items-center lg:items-stretch">
                     <Link to="/settings" className="flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-white transition-colors w-full justify-start md:justify-center md:px-0 lg:justify-start lg:px-4" title="Settings">
-                        <Settings size={20} /> 
+                        <Settings size={20} />
                         <span className="text-sm font-medium md:hidden lg:block">Settings</span>
                     </Link>
-                    
+
                     <div className="pt-6 border-t border-white/10 flex items-center justify-between w-full flex-col lg:flex-row gap-4 lg:gap-0 px-2 lg:px-0">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-slate-800 flex items-center justify-center rounded-full overflow-hidden border border-white/10 shrink-0">

@@ -22,7 +22,7 @@ export default function BookAppointment() {
     const rescheduleData = location.state?.rescheduleData;
 
     // --- AUTH & PROFILE STATE ---
-    const [userName, setUserName] = useState("User");
+    const [userName, setUserName] = useState("User"); // This will hold the Full Name
     const [isUserLoading, setIsUserLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -43,11 +43,9 @@ export default function BookAppointment() {
     // --- PRE-FILL DATA IF RESCHEDULING ---
     useEffect(() => {
         if (rescheduleData) {
-            // Remove " Medical" suffix if it exists to match the button labels
             const cleanPurpose = rescheduleData.purpose.replace(' Medical', '');
             setPurpose(cleanPurpose);
             setPaymentMethod(rescheduleData.payment_method);
-            // We keep the current date/time as default so the user can pick a NEW one
         }
     }, [rescheduleData]);
 
@@ -91,14 +89,18 @@ export default function BookAppointment() {
                     return;
                 }
 
+                // Updated to fetch both first and last name from your new schema
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('full_name')
+                    .select('first_name, last_name')
                     .eq('id', user.id)
                     .single();
 
                 if (error) throw error;
-                if (data) setUserName(data.full_name);
+                if (data) {
+                    // Combine them for the UI as requested
+                    setUserName(`${data.first_name} ${data.last_name}`);
+                }
             } catch (err) {
                 console.error("Profile fetch error:", err.message);
             } finally {
@@ -128,9 +130,7 @@ export default function BookAppointment() {
 
             const formattedDate = `${currentYear}-${(monthIndex + 1).toString().padStart(2, '0')}-${selectedDate.toString().padStart(2, '0')}`;
 
-            // --- DUPLICATE BOOKING CHECK (new bookings only) ---
             if (!rescheduleData) {
-                // Check 1: Same user already has this slot
                 const { data: ownConflict } = await supabase
                     .from('appointments')
                     .select('id')
@@ -146,7 +146,6 @@ export default function BookAppointment() {
                     return;
                 }
 
-                // Check 2: Another client already booked this slot (global conflict)
                 const { data: globalConflict } = await supabase
                     .from('appointments')
                     .select('id')
@@ -158,13 +157,6 @@ export default function BookAppointment() {
                 if (globalConflict) {
                     setBookingError('This time slot has just been taken by another client. Please select a different time.');
                     setIsSaving(false);
-                    // Refresh booked slots so the UI reflects the latest state
-                    const { data: refreshed } = await supabase
-                        .from('appointments')
-                        .select('appointment_time')
-                        .eq('appointment_date', formattedDate)
-                        .not('status', 'in', '("CANCELLED","EXPIRED")');
-                    if (refreshed) setBookedSlots(refreshed.map(a => a.appointment_time));
                     return;
                 }
             }
@@ -172,19 +164,17 @@ export default function BookAppointment() {
             let result;
 
             if (rescheduleData) {
-                // --- UPDATE LOGIC ---
                 result = await supabase
                     .from('appointments')
                     .update({
                         purpose: `${purpose} Medical`,
                         appointment_date: formattedDate,
                         appointment_time: selectedTime,
-                        status: 'PENDING' // Reset to pending for staff re-verification
+                        status: 'PENDING'
                     })
                     .eq('id', rescheduleData.id)
                     .select();
             } else {
-                // --- INSERT LOGIC ---
                 result = await supabase
                     .from('appointments')
                     .insert([
@@ -207,7 +197,6 @@ export default function BookAppointment() {
                 const aptId = result.data[0].id;
                 setAppointmentId(aptId.slice(0, 8).toUpperCase());
 
-                // --- QR CODE GENERATION (encodes only the appointment ID) ---
                 try {
                     const qrDataUrl = await QRCode.toDataURL(aptId, {
                         width: 280,
@@ -216,14 +205,12 @@ export default function BookAppointment() {
                     });
                     setQrCodeDataUrl(qrDataUrl);
 
-                    // Store QR code in Supabase appointments table
                     await supabase
                         .from('appointments')
                         .update({ qr_code: qrDataUrl })
                         .eq('id', aptId);
                 } catch (qrErr) {
                     console.error('QR Code generation error:', qrErr);
-                    // Non-blocking — booking still succeeds even if QR fails
                 }
             }
 
@@ -357,13 +344,12 @@ export default function BookAppointment() {
                                                         onClick={() => !isBooked && setSelectedTime(time)}
                                                         disabled={isBooked}
                                                         title={isBooked ? 'This slot is already taken' : ''}
-                                                        className={`time-slot ${
-                                                            isBooked
+                                                        className={`time-slot ${isBooked
                                                                 ? 'time-slot--booked'
                                                                 : selectedTime === time
                                                                     ? 'time-slot--selected'
                                                                     : ''
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {time}
                                                         {isBooked && <span className="time-slot-taken-label">Taken</span>}
@@ -418,7 +404,6 @@ export default function BookAppointment() {
                                         <div><p className="confirm-label">Purpose</p><p className="confirm-value">{purpose} Medical</p></div>
                                     </div>
 
-                                    {/* --- QR CODE DISPLAY --- */}
                                     {qrCodeDataUrl && (
                                         <div className="qr-code-section">
                                             <div className="qr-code-container">
@@ -463,24 +448,24 @@ export default function BookAppointment() {
                         {/* FOOTER ACTIONS */}
                         {currentStep < 4 && (
                             <>
-                            {bookingError && (
-                                <div className="flex items-center gap-3 p-4 bg-red-50 text-red-600 rounded-2xl border border-red-100 text-sm font-bold shadow-sm mb-4">
-                                    <AlertCircle size={18} className="shrink-0" />
-                                    {bookingError}
+                                {bookingError && (
+                                    <div className="flex items-center gap-3 p-4 bg-red-50 text-red-600 rounded-2xl border border-red-100 text-sm font-bold shadow-sm mb-4">
+                                        <AlertCircle size={18} className="shrink-0" />
+                                        {bookingError}
+                                    </div>
+                                )}
+                                <div className="footer-actions">
+                                    <button onClick={() => setCurrentStep(prev => prev - 1)} className={`back-link ${currentStep === 1 ? 'invisible' : ''}`} disabled={isSaving}><ChevronLeft size={16} /> Back</button>
+                                    <div className="flex gap-4">
+                                        {currentStep < 3 ? (
+                                            <button onClick={() => setCurrentStep(prev => prev + 1)} className="btn-primary bg-black text-white hover:bg-slate-800">Next <ChevronRight size={18} /></button>
+                                        ) : (
+                                            <button onClick={handleConfirmBooking} disabled={!paymentMethod || isSaving} className="btn-confirm bg-black text-white hover:bg-slate-800 flex items-center justify-center gap-2">
+                                                {isSaving ? <Loader2 className="animate-spin" size={18} /> : (rescheduleData ? "Update Appointment" : "Confirm and Continue")}
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
-                            )}
-                            <div className="footer-actions">
-                                <button onClick={() => setCurrentStep(prev => prev - 1)} className={`back-link ${currentStep === 1 ? 'invisible' : ''}`} disabled={isSaving}><ChevronLeft size={16} /> Back</button>
-                                <div className="flex gap-4">
-                                    {currentStep < 3 ? (
-                                        <button onClick={() => setCurrentStep(prev => prev + 1)} className="btn-primary bg-black text-white hover:bg-slate-800">Next <ChevronRight size={18} /></button>
-                                    ) : (
-                                        <button onClick={handleConfirmBooking} disabled={!paymentMethod || isSaving} className="btn-confirm bg-black text-white hover:bg-slate-800 flex items-center justify-center gap-2">
-                                            {isSaving ? <Loader2 className="animate-spin" size={18} /> : (rescheduleData ? "Update Appointment" : "Confirm and Continue")}
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
                             </>
                         )}
                     </div>

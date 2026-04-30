@@ -19,8 +19,9 @@ export default function SignUp() {
     const [isSent, setIsSent] = useState(false);
     const [showTerms, setShowTerms] = useState(false);
 
-    // Form States
-    const [fullName, setFullName] = useState("");
+    // Form States - Updated to split Full Name
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
     const [password, setPassword] = useState("");
@@ -50,7 +51,9 @@ export default function SignUp() {
                 password: password,
                 options: {
                     data: {
-                        full_name: fullName,
+                        // Updated metadata keys for Supabase Auth
+                        first_name: firstName,
+                        last_name: lastName,
                         email: email,
                         phone: `+63${phone}`,
                         role: 'client'
@@ -122,16 +125,31 @@ export default function SignUp() {
                                 )}
 
                                 <form className="signup-form space-y-5" onSubmit={handleSignUp}>
-                                    <div className="auth-form-field">
-                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Name</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            placeholder="Juan Dela Cruz"
-                                            className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold text-sm focus:border-black transition-all"
-                                            value={fullName}
-                                            onChange={(e) => setFullName(e.target.value)}
-                                        />
+
+                                    {/* Updated Name Grid */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="auth-form-field">
+                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">First Name</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="Juan"
+                                                className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold text-sm focus:border-black transition-all"
+                                                value={firstName}
+                                                onChange={(e) => setFirstName(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="auth-form-field">
+                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Last Name</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="Dela Cruz"
+                                                className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold text-sm focus:border-black transition-all"
+                                                value={lastName}
+                                                onChange={(e) => setLastName(e.target.value)}
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="auth-form-field">
@@ -202,7 +220,6 @@ export default function SignUp() {
                                         )}
                                     </div>
 
-                                    {/* --- CONFIRM PASSWORD FIELD --- */}
                                     <div className="auth-form-field">
                                         <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Confirm Password</label>
                                         <div className="relative">
@@ -315,7 +332,7 @@ export default function SignUp() {
                                 <section>
                                     <h4 className="text-[11px] font-black uppercase tracking-widest text-black mb-2">1. Information Collection</h4>
                                     <p className="text-xs leading-relaxed font-medium">
-                                        We collect personal data including your full name, contact information, and medical history exclusively for the purpose of LTO medical certification.
+                                        We collect personal data including your first name, last name, contact information, and medical history exclusively for the purpose of LTO medical certification.
                                     </p>
                                 </section>
                                 <section>

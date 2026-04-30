@@ -42,15 +42,16 @@ export default function ClientDashboard() {
                 return;
             }
 
-            // 2. Fetch the Profile Name
+            // 2. Fetch only the First Name from the updated profiles table
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('full_name')
+                .select('first_name') // Updated from full_name
                 .eq('id', user.id)
                 .single();
-            if (profile) setUserName(profile.full_name);
 
-            // 3. Auto-expire stale PENDING appointments before showing upcoming
+            if (profile) setUserName(profile.first_name); // Set the specific first name
+
+            // 3. Auto-expire stale PENDING appointments
             const now = new Date();
             const { data: pendingApts } = await supabase
                 .from('appointments')
@@ -76,7 +77,7 @@ export default function ClientDashboard() {
                 }
             }
 
-            // 4. Fetch the nearest upcoming appointment (use local date, not UTC)
+            // 4. Fetch the nearest upcoming appointment
             const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
             const { data: appointments, error: aptError } = await supabase
                 .from('appointments')
@@ -99,19 +100,18 @@ export default function ClientDashboard() {
         }
     }
 
+    // Rest of your helper functions (handleLogout, getDaysLeft, formatDate) remain the same...
     const handleLogout = async () => {
         await supabase.auth.signOut();
         navigate('/login');
     };
 
-    // Helper: Calculate Days Left
     const getDaysLeft = (dateString) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const target = new Date(dateString);
         const diffTime = target - today;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
         if (diffDays === 0) return "Today";
         if (diffDays === 1) return "Tomorrow";
         return `In ${diffDays} days`;
@@ -129,11 +129,13 @@ export default function ClientDashboard() {
                 <div className="flex flex-col h-full w-full max-w-7xl mx-auto">
                     <header className="dashboard-header mb-8 md:mb-12">
                         <h1 className="page-title text-3xl font-bold text-slate-900">
-                            Welcome, {loading ? <span className="animate-pulse">...</span> : userName.split(' ')[0]}
+                            {/* Simplified the display logic since userName is now just the first name */}
+                            Welcome, {loading ? <span className="animate-pulse">...</span> : userName}
                         </h1>
                         <p className="dashboard-welcome text-slate-500">Manage your health and appointments at a glance.</p>
                     </header>
 
+                    {/* Loading/Appointment Section remains unchanged */}
                     {loading ? (
                         <div className="flex justify-center py-20"><Loader2 className="animate-spin text-slate-300" size={48} /></div>
                     ) : upcomingApt ? (
