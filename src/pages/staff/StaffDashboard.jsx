@@ -239,7 +239,7 @@ export default function StaffDashboard() {
                 <main className="staff-main">
                     <header className="staff-header relative">
                         <div className="staff-header-info">
-                            <h1 className="staff-page-title-sm">Clinic Overview</h1>
+                            <h1 className="staff-page-title">Clinic Overview</h1>
                             <p className="dashboard-date">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
                         </div>
 

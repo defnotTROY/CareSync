@@ -124,7 +124,7 @@
 }
 
 .staff-page-title {
-    @apply text-5xl font-black text-slate-950 uppercase tracking-tighter;
+    @apply text-5xl font-black text-slate-950 uppercase tracking-tighter leading-none italic;
 }
 
 .staff-page-title-sm {

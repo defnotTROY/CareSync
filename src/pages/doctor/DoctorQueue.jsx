@@ -9,6 +9,7 @@ import {
 import { supabase } from '../../lib/supabase.js';
 import { useAuth } from '../../lib/AuthContext.jsx';
 import PageTransition from "../../components/layout/PageTransition.jsx";
+import '../../styles/staff-portal.css';
 
 export default function DoctorQueue() {
     const location = useLocation();
@@ -161,7 +162,7 @@ export default function DoctorQueue() {
                 <main className="flex-1 p-12 space-y-10 overflow-y-auto">
                     <header className="flex justify-between items-center">
                         <div className="space-y-1">
-                            <h1 className="text-5xl font-black text-slate-950 uppercase tracking-tighter leading-none italic">Weekly Queue</h1>
+                            <h1 className="staff-page-title">Weekly Queue</h1>
                             <p className="text-slate-500 font-medium uppercase text-[10px] tracking-[0.2em]">Active Patient Flow Management</p>
                         </div>
                         <div className="bg-white border-2 border-slate-50 px-6 py-4 rounded-2xl flex items-center gap-4 shadow-sm">

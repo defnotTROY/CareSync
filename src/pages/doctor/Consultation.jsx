@@ -9,6 +9,7 @@ import { supabase } from '../../lib/supabase.js';
 import { useAuth } from '../../lib/AuthContext.jsx';
 import { useToast } from '../../lib/ToastContext.jsx';
 import PageTransition from "../../components/layout/PageTransition.jsx";
+import '../../styles/staff-portal.css';
 
 export default function Consultation() {
     const location = useLocation();
@@ -186,7 +187,7 @@ export default function Consultation() {
                     {/* HEADER */}
                     <header className="flex justify-between items-center border-b border-slate-100 pb-8">
                         <div className="space-y-1">
-                            <h1 className="text-5xl font-black text-slate-950 uppercase tracking-tighter leading-none">Examination</h1>
+                            <h1 className="staff-page-title">Examination</h1>
                             <p className="text-slate-500 font-medium uppercase text-[10px] tracking-[0.2em]">Medical Assessment Entry</p>
                         </div>
                         <button

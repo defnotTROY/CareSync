@@ -8,6 +8,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase.js';
 import { useAuth } from '../../lib/AuthContext.jsx';
 import PageTransition from "../../components/layout/PageTransition.jsx";
+import '../../styles/staff-portal.css';
 import './DoctorSettings.css';
 
 export default function DoctorSettings() {
@@ -149,9 +150,7 @@ export default function DoctorSettings() {
                 <main className="flex-1 p-12 space-y-10 overflow-y-auto">
                     <div className="flex justify-between items-center">
                         <div className="space-y-1">
-                            <h1 className="page-title text-4xl font-bold text-slate-900 leading-none">
-                                Settings
-                            </h1>
+                            <h1 className="staff-page-title">Settings</h1>
                             <p className="text-slate-500 font-medium text-sm">Manage your professional profile and credentials.</p>
                         </div>
                         <button

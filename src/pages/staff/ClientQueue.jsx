@@ -126,8 +126,8 @@ export default function ClientQueue() {
                 <main className="staff-main p-12 space-y-10 overflow-y-auto bg-[#F8FAFC]">
                     <div className="flex justify-between items-center">
                         <div>
-                            <h1 className="text-5xl font-black text-slate-900 uppercase tracking-tighter leading-none italic">Live Queue</h1>
-                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mt-2">Live Center Management</p>
+                            <h1 className="staff-page-title">Live Queue</h1>
+                            <p className="staff-page-subtitle">Live Center Management</p>
                         </div>
                         <button onClick={refresh} className="px-6 py-3 bg-white border-2 border-slate-50 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:border-black shadow-sm transition-all">
                             <RefreshCw size={14} /> Refresh

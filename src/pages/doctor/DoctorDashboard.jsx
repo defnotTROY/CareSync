@@ -8,6 +8,7 @@ import {
 import { supabase } from '../../lib/supabase.js';
 import { useAuth } from '../../lib/AuthContext.jsx';
 import PageTransition from "../../components/layout/PageTransition.jsx";
+import '../../styles/staff-portal.css';
 
 export default function DoctorDashboard() {
     const location = useLocation();
@@ -177,7 +178,7 @@ export default function DoctorDashboard() {
                 <main className="flex-1 p-12 space-y-10 overflow-y-auto">
                     <div className="flex justify-between items-start">
                         <div className="space-y-1">
-                            <h1 className="text-4xl font-black text-slate-950 uppercase tracking-tighter leading-none">Welcome, Dr. {doctorName}</h1>
+                            <h1 className="staff-page-title">Welcome, Dr. {doctorName}</h1>
                             <p className="text-slate-500 font-medium text-xs uppercase tracking-widest">{formatDate(new Date())}</p>
                         </div>
                         <button className="p-3 bg-white border border-slate-200 rounded-full text-slate-400 shadow-sm hover:bg-slate-50 transition-colors">

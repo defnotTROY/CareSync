@@ -165,8 +165,8 @@ export default function Maintenance() {
                                         key={item.name}
                                         to={item.path}
                                         className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all ${isActive
-                                                ? 'bg-white text-black font-black shadow-lg'
-                                                : 'text-slate-400 hover:text-white hover:bg-white/5 font-bold'
+                                            ? 'bg-white text-black font-black shadow-lg'
+                                            : 'text-slate-400 hover:text-white hover:bg-white/5 font-bold'
                                             }`}
                                     >
                                         <item.icon size={20} className={isActive ? 'text-black' : 'text-slate-400'} />

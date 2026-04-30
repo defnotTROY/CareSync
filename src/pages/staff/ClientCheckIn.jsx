@@ -294,7 +294,7 @@ export default function ClientCheckIn() {
 
                 <main className="staff-main-sm">
                     <div className="staff-header">
-                        <h1 className="staff-page-title-sm uppercase font-black tracking-tighter italic">Client Check-in</h1>
+                        <h1 className="staff-page-title">Client Check-in</h1>
                     </div>
 
                     <div className="staff-grid-12">

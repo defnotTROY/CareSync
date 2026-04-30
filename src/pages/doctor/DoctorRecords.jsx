@@ -9,6 +9,7 @@ import {
 import { supabase } from '../../lib/supabase.js';
 import { useAuth } from '../../lib/AuthContext.jsx';
 import PageTransition from "../../components/layout/PageTransition.jsx";
+import '../../styles/staff-portal.css';
 
 export default function DoctorRecords() {
     const location = useLocation();
@@ -123,7 +124,7 @@ export default function DoctorRecords() {
                 <main className="flex-1 p-12 space-y-10 overflow-y-auto">
                     <div className="flex justify-between items-center">
                         <div className="space-y-1">
-                            <h1 className="text-5xl font-black text-slate-950 uppercase tracking-tighter leading-none">Medical Records</h1>
+                            <h1 className="staff-page-title">Medical Records</h1>
                             <p className="text-slate-500 font-medium uppercase text-[10px] tracking-[0.2em]">Patient health history & archives</p>
                         </div>
                         <input
