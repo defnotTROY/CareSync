@@ -24,6 +24,37 @@ export default function MyAppointments() {
     const [selectedApt, setSelectedApt] = useState(null);
     const [actioningId, setActioningId] = useState(null);
     const [cancelModalApt, setCancelModalApt] = useState(null);
+    const [consultationResult, setConsultationResult] = useState(null);
+    const [loadingConsultation, setLoadingConsultation] = useState(false);
+
+    // --- FETCH CONSULTATION ---
+    useEffect(() => {
+        if (selectedApt && selectedApt.status === 'COMPLETED') {
+            const fetchConsultation = async () => {
+                setLoadingConsultation(true);
+                try {
+                    const { data, error } = await supabase
+                        .from('consultations')
+                        .select('*')
+                        .eq('appointment_id', selectedApt.id)
+                        .single();
+                    if (!error && data) {
+                        setConsultationResult(data);
+                    } else {
+                        setConsultationResult(null);
+                    }
+                } catch (err) {
+                    console.error("Error fetching consultation:", err);
+                    setConsultationResult(null);
+                } finally {
+                    setLoadingConsultation(false);
+                }
+            };
+            fetchConsultation();
+        } else {
+            setConsultationResult(null);
+        }
+    }, [selectedApt]);
 
     // --- FETCH DATA ---
     const fetchData = async () => {
@@ -274,7 +305,57 @@ export default function MyAppointments() {
                                             <p className="font-bold text-slate-800">{selectedApt.appointment_time}</p>
                                         </div>
                                     </div>
-                                    <div className="p-6 bg-slate-50 text-right">
+
+                                    {(selectedApt.status === 'CONFIRMED' || selectedApt.status === 'PENDING') && selectedApt.qr_code && (
+                                        <div className="border-t border-slate-100 pt-6 flex flex-col items-center">
+                                            <p className="text-sm font-bold text-slate-900 mb-4 uppercase tracking-widest">Access QR Code</p>
+                                            <img src={selectedApt.qr_code} alt="Appointment QR Code" className="w-48 h-48 rounded-xl shadow-sm border border-slate-100 p-2" />
+                                            <p className="text-[10px] uppercase tracking-widest text-slate-400 mt-4 text-center font-bold">Present to staff upon arrival</p>
+                                        </div>
+                                    )}
+                                    
+                                    {selectedApt.status === 'COMPLETED' && (
+                                        <div className="border-t border-slate-100 pt-6">
+                                            <h4 className="font-bold text-slate-900 mb-4">Consultation Result</h4>
+                                            {loadingConsultation ? (
+                                                <div className="flex items-center gap-2 text-slate-500">
+                                                    <Loader2 size={16} className="animate-spin" />
+                                                    <span className="text-sm">Loading records...</span>
+                                                </div>
+                                            ) : consultationResult ? (
+                                                <div className="space-y-4 text-sm">
+                                                    {consultationResult.diagnosis && (
+                                                        <div>
+                                                            <p className="text-slate-400 mb-1">Diagnosis</p>
+                                                            <p className="font-medium text-slate-800">{consultationResult.diagnosis}</p>
+                                                        </div>
+                                                    )}
+                                                    {consultationResult.treatment_plan && (
+                                                        <div>
+                                                            <p className="text-slate-400 mb-1">Treatment Plan</p>
+                                                            <p className="font-medium text-slate-800">{consultationResult.treatment_plan}</p>
+                                                        </div>
+                                                    )}
+                                                    {consultationResult.prescription && (
+                                                        <div>
+                                                            <p className="text-slate-400 mb-1">Prescription</p>
+                                                            <p className="font-medium text-slate-800">{consultationResult.prescription}</p>
+                                                        </div>
+                                                    )}
+                                                    {consultationResult.notes && (
+                                                        <div>
+                                                            <p className="text-slate-400 mb-1">Notes</p>
+                                                            <p className="font-medium text-slate-800">{consultationResult.notes}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-slate-500 italic">No detailed records found for this visit.</p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <div className="p-6 bg-slate-50 text-right -mx-8 -mb-8 mt-6">
                                         <button
                                             onClick={() => setSelectedApt(null)}
                                             className="bg-black text-white px-8 py-2.5 rounded-xl font-bold hover:bg-slate-800 transition-colors"
