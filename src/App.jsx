@@ -127,6 +127,18 @@ function AnimatedRoutes() {
   );
 }
 
+// Only show chatbot on client-facing pages (not staff/doctor/admin)
+function ClientChatBot() {
+  const location = useLocation();
+  const isStaffOrDoctorOrAdmin =
+    location.pathname.startsWith('/staff') ||
+    location.pathname.startsWith('/doctor') ||
+    location.pathname.startsWith('/admin');
+
+  if (isStaffOrDoctorOrAdmin) return null;
+  return <ChatBot />;
+}
+
 function App() {
   return (
     <Router>
@@ -136,7 +148,7 @@ function App() {
             <Suspense fallback={<PageLoader />}>
               <AnimatedRoutes />
             </Suspense>
-            <ChatBot />
+            <ClientChatBot />
           </div>
         </AuthProvider>
       </ToastProvider>
