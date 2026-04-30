@@ -66,20 +66,27 @@ export default function StaffManagement() {
         }
     }
 
-    const handleArchiveToggle = async (id, currentRole) => {
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, staffId: null, currentRole: null });
+
+    const confirmArchiveToggle = (id, currentRole) => {
+        setConfirmModal({ isOpen: true, staffId: id, currentRole: currentRole });
+        setActiveDropdown(null);
+    };
+
+    const executeArchiveToggle = async () => {
+        const { staffId, currentRole } = confirmModal;
         const isRestoring = currentRole === 'archived';
-        if (!window.confirm(isRestoring ? "Unarchive this personnel?" : "Archive this personnel?")) return;
+        if (!staffId) return;
         try {
             const { error } = await supabase
                 .from('profiles')
                 .update({ role: isRestoring ? 'staff' : 'archived' })
-                .eq('id', id);
+                .eq('id', staffId);
             if (error) throw error;
             fetchStaff();
+            setConfirmModal({ isOpen: false, staffId: null, currentRole: null });
         } catch (err) {
             alert(err.message);
-        } finally {
-            setActiveDropdown(null);
         }
     };
 
@@ -275,7 +282,7 @@ export default function StaffManagement() {
                                                                             <Edit3 size={14} className="text-black" /> Edit Profile
                                                                         </button>
                                                                     )}
-                                                                    <button onClick={() => handleArchiveToggle(staff.id, staff.role)} className={`w-full px-6 py-4 flex items-center gap-3 font-black uppercase text-[10px] tracking-widest transition-colors ${viewArchived ? 'text-emerald-600 hover:bg-emerald-50' : 'text-red-500 hover:bg-red-50 border-t border-slate-50'}`}>
+                                                                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); confirmArchiveToggle(staff.id, staff.role); }} className={`w-full px-6 py-4 flex items-center gap-3 font-black uppercase text-[10px] tracking-widest transition-colors ${viewArchived ? 'text-emerald-600 hover:bg-emerald-50' : 'text-red-500 hover:bg-red-50 border-t border-slate-50'}`}>
                                                                         {viewArchived ? <RotateCcw size={14} /> : <Archive size={14} />}
                                                                         {viewArchived ? 'Unarchive' : 'Archive'}
                                                                     </button>
@@ -415,6 +422,39 @@ export default function StaffManagement() {
             </div>
         )
     }
+
+                    {/* CONFIRMATION MODAL */}
+                    {confirmModal.isOpen && (
+                        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                            <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 p-8 text-center space-y-6">
+                                <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-2 ${confirmModal.currentRole !== 'archived' ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-500'}`}>
+                                    {confirmModal.currentRole !== 'archived' ? <Archive size={32} /> : <RotateCcw size={32} />}
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-black uppercase italic tracking-tighter text-slate-900">{confirmModal.currentRole !== 'archived' ? 'Archive Staff?' : 'Unarchive Staff?'}</h3>
+                                    <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-2 font-bold leading-relaxed">
+                                        {confirmModal.currentRole !== 'archived'
+                                            ? "This personnel will be moved to the archives and won't have active access." 
+                                            : "This personnel will be restored and granted active system access."}
+                                    </p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 mt-8">
+                                    <button 
+                                        onClick={() => setConfirmModal({ isOpen: false, staffId: null, currentRole: null })}
+                                        className="py-4 bg-slate-50 text-slate-600 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-100 transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        onClick={executeArchiveToggle}
+                                        className={`py-4 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all shadow-lg ${confirmModal.currentRole !== 'archived' ? 'bg-red-500 hover:bg-red-600 shadow-red-500/30' : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30'}`}
+                                    >
+                                        {confirmModal.currentRole !== 'archived' ? 'Archive' : 'Unarchive'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </PageTransition>
