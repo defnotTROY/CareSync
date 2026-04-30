@@ -27,17 +27,11 @@ export default function Navbar() {
             </div>
 
             <div className="flex items-center gap-3">
-                {/* Connected to /login */}
-                <Link
-                    to="/login"
-                    className="px-5 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 rounded-lg transition-colors text-center"
-                >
-                    Login
-                </Link>
+
 
                 {/* Connected to /signup */}
                 <Link
-                    to="/signup"
+                    to="/login"
                     className="px-5 py-2 text-sm font-bold bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all shadow-sm"
                 >
                     Book Now

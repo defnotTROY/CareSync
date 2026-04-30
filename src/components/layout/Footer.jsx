@@ -1,4 +1,5 @@
 import { ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Footer() {
     return (
@@ -10,16 +11,16 @@ export default function Footer() {
 
                 <div className="relative z-10 space-y-6">
                     <h2 className="text-3xl lg:text-5xl font-extrabold text-white tracking-tight">
-                        READY TO GET BACK ON THE ROAD?
+                        READY TO GET ON THE ROAD?
                     </h2>
                     <p className="text-slate-400 max-w-2xl mx-auto text-sm lg:text-base">
                         Join thousands of drivers who trust MJY 88 Medical Services for their licensing requirements.
                         Get your medical certificate fast and hassle-free.
                     </p>
                     <div className="flex flex-wrap justify-center gap-4 pt-4">
-                        <button className="px-8 py-4 bg-white text-black rounded-xl font-bold hover:bg-slate-100 transition-all">
+                        <Link to="/login" className="px-8 py-4 bg-white text-black rounded-xl font-bold hover:bg-slate-100 transition-all">
                             Book an Appointment Now
-                        </button>
+                        </Link>
 
                     </div>
                 </div>

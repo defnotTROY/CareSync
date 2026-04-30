@@ -1,5 +1,6 @@
 // src/components/Hero.jsx
 import { ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Hero() {
     return (
@@ -29,9 +30,9 @@ export default function Hero() {
                 </p>
 
                 <div className="flex flex-wrap gap-4">
-                    <button className="px-8 py-4 bg-slate-900 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all">
-                        Book Appointment <ArrowRight size={18} />
-                    </button>
+                    <Link to="/login" className="px-8 py-4 bg-slate-900 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all">
+                        Book Appointment <ArrowRight size={25} />
+                    </Link>
                     <a href="#live-queue" className="px-8 py-4 border-2 border-slate-200 text-slate-900 rounded-xl font-bold hover:bg-slate-50 transition-all flex items-center justify-center">
                         View Live Queue
                     </a>
