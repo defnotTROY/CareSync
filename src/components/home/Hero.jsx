@@ -43,8 +43,8 @@ export default function Hero() {
             <div className="flex-1 relative">
                 <div className="w-full aspect-[4/3] bg-slate-100 rounded-[2rem] overflow-hidden border-8 border-white shadow-2xl">
                     <img
-                        src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=1000"
-                        alt="Clinic Interior"
+                        src="/mjyfront.jpg"
+                        alt="Clinic Exterior"
                         className="w-full h-full object-cover"
                     />
                 </div>
