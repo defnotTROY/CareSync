@@ -1,43 +1,36 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
-    LayoutDashboard, Users, BadgeDollarSign, Warehouse,
-    Wrench, Settings, LogOut, Search,
-    Plus, MoreVertical, AlertCircle, PackageCheck, Truck, X, Loader2,
-    Archive, Edit3, ChevronUp, ChevronDown, RotateCcw, Eye, EyeOff
+    Plus, MoreVertical, Archive, Edit3, ChevronUp, ChevronDown, RotateCcw,
+    Eye, EyeOff, Loader2, X, RefreshCw
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase.js';
 import PageTransition from "../../components/layout/PageTransition.jsx";
+import AdminSidebar from "../../components/layout/AdminSidebar.jsx";
+import AdminHeader from "../../components/layout/AdminHeader.jsx";
 
 export default function Inventory() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    // Data States
-    const [items, setItems] = useState([]);
+    // UI & Sidebar States
+    const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [activeMenu, setActiveMenu] = useState(null);
-    const [showArchived, setShowArchived] = useState(false); // NEW: State for Archive View
+    const [showArchived, setShowArchived] = useState(false);
 
-    // Form State
+    // Data State
+    const [items, setItems] = useState([]);
     const [formData, setFormData] = useState({
         id: null, sku: '', name: '', category: 'Pharmacy', stock_quantity: 0, unit: 'Tabs', min_stock_level: 10
     });
 
-    const navItems = [
-        { name: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
-        { name: 'Staff Management', icon: Users, path: '/admin/staff' },
-        { name: 'Revenue', icon: BadgeDollarSign, path: '/admin/revenue' },
-        { name: 'Inventory', icon: Warehouse, path: '/admin/inventory' },
-        { name: 'Maintenance', icon: Wrench, path: '/admin/maintenance' },
-    ];
-
     useEffect(() => {
         fetchInventory();
-    }, [showArchived]); // Refetch whenever toggle changes
+    }, [showArchived]);
 
     async function fetchInventory() {
         try {
@@ -45,7 +38,7 @@ export default function Inventory() {
             const { data, error } = await supabase
                 .from('inventory')
                 .select('*')
-                .eq('is_archived', showArchived) // Dynamically filter based on toggle
+                .eq('is_archived', showArchived)
                 .order('name', { ascending: true });
 
             if (error) throw error;
@@ -85,7 +78,6 @@ export default function Inventory() {
                 }]);
                 if (error) throw error;
             }
-
             closeModal();
             fetchInventory();
         } catch (err) {
@@ -111,19 +103,6 @@ export default function Inventory() {
         }
     };
 
-    const openEditModal = (item) => {
-        setFormData(item);
-        setIsEditMode(true);
-        setIsModalOpen(true);
-        setActiveMenu(null);
-    };
-
-    const closeModal = () => {
-        setIsModalOpen(false);
-        setIsEditMode(false);
-        setFormData({ id: null, sku: '', name: '', category: 'Pharmacy', stock_quantity: 0, unit: 'Tabs', min_stock_level: 10 });
-    };
-
     const updateStock = async (id, currentStock, amount) => {
         const newStock = Math.max(0, currentStock + amount);
         try {
@@ -138,6 +117,19 @@ export default function Inventory() {
         }
     };
 
+    const openEditModal = (item) => {
+        setFormData(item);
+        setIsEditMode(true);
+        setIsModalOpen(true);
+        setActiveMenu(null);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setIsEditMode(false);
+        setFormData({ id: null, sku: '', name: '', category: 'Pharmacy', stock_quantity: 0, unit: 'Tabs', min_stock_level: 10 });
+    };
+
     const getStatus = (stock, min) => {
         if (stock === 0) return { label: 'OUT OF STOCK', color: 'bg-red-50 text-red-600 border-red-100' };
         if (stock <= min) return { label: 'CRITICAL', color: 'bg-orange-50 text-orange-600 border-orange-100' };
@@ -146,157 +138,164 @@ export default function Inventory() {
 
     return (
         <PageTransition>
-            <div className="flex min-h-screen bg-[#F8FAFC] text-slate-900 font-sans relative" onClick={() => setActiveMenu(null)}>
+            <div className="flex min-h-screen bg-[#F8FAFC]" onClick={() => setActiveMenu(null)}>
+                <AdminSidebar
+                    isOpen={isSidebarOpen}
+                    onClose={() => setSidebarOpen(false)}
+                />
 
-                {/* SIDEBAR */}
-                <aside className="w-72 bg-black flex flex-col justify-between py-10 px-6 shrink-0 h-screen sticky top-0">
-                    <div className="space-y-10">
-                        <div className="flex items-center gap-3 px-2">
-                            <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center font-bold text-white text-xl italic shadow-lg">C</div>
-                            <div className="flex flex-col text-white font-black uppercase tracking-tight leading-none italic">
-                                <span className="text-lg tracking-tighter">CareSync</span>
-                                <span className="text-slate-500 text-[10px] tracking-widest mt-1 uppercase">Admin Portal</span>
+                <div className="flex-1 flex flex-col min-w-0 md:ml-20 lg:ml-72">
+                    <AdminHeader
+                        title={showArchived ? "Archived Inventory" : "System Inventory"}
+                        onMenuClick={() => setSidebarOpen(true)}
+                    />
+
+                    <main className="p-6 lg:p-12 space-y-10">
+                        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
+                            <div className="space-y-1">
+                                <h1 className="text-4xl lg:text-6xl font-black text-slate-950 uppercase tracking-tighter leading-none italic">
+                                    {showArchived ? "Archives" : "Inventory"}
+                                </h1>
+                                <p className="text-slate-500 font-black uppercase text-[10px] tracking-[0.3em]">
+                                    {showArchived ? "Inactive Medical Stock" : "Medical Supply Management"}
+                                </p>
                             </div>
-                        </div>
-                        <nav className="space-y-1">
-                            {navItems.map((item) => (
-                                <Link key={item.name} to={item.path} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all ${location.pathname === item.path ? 'bg-white text-black font-bold shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-                                    <item.icon size={20} className={location.pathname === item.path ? 'text-black' : 'text-slate-400'} />
-                                    <span className="text-sm">{item.name}</span>
-                                </Link>
-                            ))}
-                        </nav>
-                    </div>
-                </aside>
-
-                <main className="flex-1 p-12 space-y-10 overflow-y-auto pb-40">
-                    <header className="flex justify-between items-center">
-                        <div className="space-y-1">
-                            <h1 className="text-5xl font-black text-slate-950 uppercase tracking-tighter leading-none italic">
-                                {showArchived ? "Archived Items" : "Inventory"}
-                            </h1>
-                            <p className="text-slate-500 font-medium uppercase text-[10px] tracking-[0.2em]">
-                                {showArchived ? "Inactive Medical Stock" : "Medical Supply Archive & Management"}
-                            </p>
-                        </div>
-                        <div className="flex gap-4">
-                            {/* NEW: Archive Toggle Button */}
-                            <button
-                                onClick={() => setShowArchived(!showArchived)}
-                                className={`px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all shadow-xl ${showArchived ? 'bg-emerald-500 text-white' : 'bg-white border-2 border-slate-100 text-slate-400'}`}
-                            >
-                                {showArchived ? <Eye size={18} /> : <EyeOff size={18} />}
-                                {showArchived ? "View Active" : "View Archives"}
-                            </button>
-
-                            {!showArchived && (
-                                <button onClick={() => { setIsEditMode(false); setIsModalOpen(true); }} className="px-8 py-4 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-emerald-500 transition-all shadow-xl">
-                                    <Plus size={18} /> Add New Item
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowArchived(!showArchived)}
+                                    className={`px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all border-2 ${showArchived ? 'bg-black text-white border-black shadow-lg' : 'bg-white border-slate-100 text-slate-400'}`}
+                                >
+                                    {showArchived ? <Eye size={18} /> : <EyeOff size={18} />}
+                                    {showArchived ? "Active" : "Archives"}
                                 </button>
-                            )}
-                        </div>
-                    </header>
 
-                    <div className="bg-white border-2 border-slate-50 rounded-[3rem] shadow-sm overflow-visible">
-                        {loading ? (
-                            <div className="flex justify-center py-24"><Loader2 className="animate-spin text-emerald-500" size={48} /></div>
-                        ) : (
-                            <table className="w-full text-left">
-                                <thead className="bg-black text-white">
-                                    <tr>
-                                        <th className="px-10 py-7 text-[10px] uppercase tracking-widest text-slate-400 font-bold">Item Detail</th>
-                                        <th className="px-10 py-7 text-[10px] uppercase tracking-widest text-slate-400 font-bold">Category</th>
-                                        <th className="px-10 py-7 text-[10px] uppercase tracking-widest text-slate-400 font-bold">Stock</th>
-                                        <th className="px-10 py-7 text-[10px] uppercase tracking-widest text-slate-400 font-bold">Status</th>
-                                        <th className="px-10 py-7 text-[10px] uppercase tracking-widest text-slate-400 font-bold text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50">
-                                    {items.length > 0 ? items.map((item) => {
-                                        const status = getStatus(item.stock_quantity, item.min_stock_level);
-                                        return (
-                                            <tr key={item.id} className="group hover:bg-slate-50/50 transition-all font-bold italic">
-                                                <td className="px-10 py-8">
-                                                    <p className="font-black text-slate-950 uppercase text-sm">{item.name}</p>
-                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">SKU: {item.sku}</p>
-                                                </td>
-                                                <td className="px-10 py-8 font-black uppercase text-[10px] text-slate-500 tracking-widest">{item.category}</td>
-                                                <td className="px-10 py-8">
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="font-black text-slate-950 text-base">{item.stock_quantity} {item.unit}</span>
-                                                        {!showArchived && (
-                                                            <div className="flex flex-col gap-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <button onClick={() => updateStock(item.id, item.stock_quantity, 1)} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded"><ChevronUp size={16} /></button>
-                                                                <button onClick={() => updateStock(item.id, item.stock_quantity, -1)} className="p-0.5 hover:bg-red-50 text-red-600 rounded"><ChevronDown size={16} /></button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-10 py-8">
-                                                    <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border ${status.color}`}>
-                                                        {status.label}
-                                                    </span>
-                                                </td>
-                                                <td className="px-10 py-8 text-right relative overflow-visible">
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === item.id ? null : item.id); }}
-                                                        className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:text-black transition-all relative z-10"
-                                                    >
-                                                        <MoreVertical size={18} />
-                                                    </button>
+                                {!showArchived && (
+                                    <button onClick={() => { setIsEditMode(false); setIsModalOpen(true); }} className="px-8 py-4 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-emerald-600 transition-all shadow-xl">
+                                        <Plus size={18} /> Add Item
+                                    </button>
+                                )}
+                            </div>
+                        </header>
 
-                                                    {activeMenu === item.id && (
-                                                        <div
-                                                            className="absolute right-10 top-full -mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] z-[999] p-2 animate-in fade-in slide-in-from-top-2"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        >
-                                                            {showArchived ? (
-                                                                <button
-                                                                    onClick={() => archiveItem(item.id, true)}
-                                                                    className="w-full text-left px-4 py-3 text-[10px] font-black uppercase flex items-center gap-3 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
-                                                                >
-                                                                    <RotateCcw size={14} /> Restore Item
-                                                                </button>
-                                                            ) : (
-                                                                <>
-                                                                    <button
-                                                                        onClick={() => openEditModal(item)}
-                                                                        className="w-full text-left px-4 py-3 text-[10px] font-black uppercase flex items-center gap-3 text-slate-600 hover:bg-slate-50 rounded-lg transition-all"
-                                                                    >
-                                                                        <Edit3 size={14} /> Edit Details
-                                                                    </button>
-                                                                    <div className="h-[1px] bg-slate-50 my-1"></div>
-                                                                    <button
-                                                                        onClick={() => archiveItem(item.id, false)}
-                                                                        className="w-full text-left px-4 py-3 text-[10px] font-black uppercase flex items-center gap-3 text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
-                                                                    >
-                                                                        <Archive size={14} /> Archive Item
-                                                                    </button>
-                                                                </>
+                        <div className="bg-white border-2 border-slate-100 rounded-[2.5rem] shadow-sm overflow-x-auto">
+                            {loading ? (
+                                <div className="flex justify-center py-24"><Loader2 className="animate-spin text-black" size={48} /></div>
+                            ) : (
+                                <table className="w-full text-left min-w-[900px]">
+                                    <thead className="bg-black text-white text-[9px] font-black uppercase tracking-[0.2em]">
+                                        <tr>
+                                            <th className="px-10 py-6">Item Detail</th>
+                                            <th className="px-10 py-6 text-center">Category</th>
+                                            <th className="px-10 py-6 text-center">Stock</th>
+                                            <th className="px-10 py-6 text-center">Status</th>
+                                            <th className="px-10 py-6 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50 text-[10px] font-black uppercase tracking-tight">
+                                        {items.length > 0 ? items.map((item) => {
+                                            const status = getStatus(item.stock_quantity, item.min_stock_level);
+                                            return (
+                                                <tr key={item.id} className="hover:bg-slate-50 transition-colors group">
+                                                    <td className="px-10 py-8">
+                                                        <p className="text-slate-900 text-sm italic font-black">{item.name}</p>
+                                                        <p className="text-[8px] text-slate-300 font-mono tracking-widest mt-1">SKU: {item.sku}</p>
+                                                    </td>
+                                                    <td className="px-10 py-8 text-center text-slate-400 tracking-widest">{item.category}</td>
+                                                    <td className="px-10 py-8 text-center">
+                                                        <div className="flex items-center justify-center gap-4">
+                                                            <span className="text-slate-900 text-base font-black">{item.stock_quantity} <span className="text-[8px] text-slate-400">{item.unit}</span></span>
+                                                            {!showArchived && (
+                                                                <div className="flex flex-col gap-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <button onClick={() => updateStock(item.id, item.stock_quantity, 1)} className="p-1 hover:bg-emerald-50 text-emerald-600 rounded"><ChevronUp size={14} /></button>
+                                                                    <button onClick={() => updateStock(item.id, item.stock_quantity, -1)} className="p-1 hover:bg-red-50 text-red-600 rounded"><ChevronDown size={14} /></button>
+                                                                </div>
                                                             )}
                                                         </div>
-                                                    )}
+                                                    </td>
+                                                    <td className="px-10 py-8 text-center">
+                                                        <span className={`px-4 py-2 rounded-xl text-[8px] tracking-widest border-2 font-black uppercase ${status.color}`}>
+                                                            {status.label}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-10 py-8 text-right relative">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === item.id ? null : item.id); }}
+                                                            className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:text-black transition-all"
+                                                        >
+                                                            <MoreVertical size={18} />
+                                                        </button>
+
+                                                        {activeMenu === item.id && (
+                                                            <div
+                                                                className="absolute right-10 top-full -mt-2 w-48 bg-white border-2 border-slate-100 rounded-2xl shadow-xl z-[999] p-2 animate-in fade-in slide-in-from-top-2"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                {showArchived ? (
+                                                                    <button onClick={() => archiveItem(item.id, true)} className="w-full text-left px-4 py-3 text-[9px] font-black uppercase flex items-center gap-3 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all">
+                                                                        <RotateCcw size={14} /> Restore Item
+                                                                    </button>
+                                                                ) : (
+                                                                    <>
+                                                                        <button onClick={() => openEditModal(item)} className="w-full text-left px-4 py-3 text-[9px] font-black uppercase flex items-center gap-3 text-slate-600 hover:bg-slate-50 rounded-lg transition-all">
+                                                                            <Edit3 size={14} /> Edit Details
+                                                                        </button>
+                                                                        <div className="h-[1px] bg-slate-50 my-1"></div>
+                                                                        <button onClick={() => archiveItem(item.id, false)} className="w-full text-left px-4 py-3 text-[9px] font-black uppercase flex items-center gap-3 text-amber-600 hover:bg-amber-50 rounded-lg transition-all">
+                                                                            <Archive size={14} /> Archive Item
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        }) : (
+                                            <tr>
+                                                <td colSpan="5" className="text-center py-24 text-slate-300 italic font-black uppercase tracking-widest">
+                                                    {showArchived ? "No archived records" : "No active records"}
                                                 </td>
                                             </tr>
-                                        );
-                                    }) : (
-                                        <tr>
-                                            <td colSpan="5" className="text-center py-20 text-slate-300 font-black uppercase tracking-widest">
-                                                {showArchived ? "No archived items found" : "No active inventory items"}
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
-                </main>
+                                        )}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    </main>
+                </div>
 
-                {/* MODAL (ADD/EDIT) remains the same as before */}
+                {/* MODAL (INSIDE WRAPPER) */}
                 {isModalOpen && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-                        <div className="bg-white w-full max-w-lg rounded-[3.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-                            {/* ... (Same Modal Content) ... */}
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                        <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
+                            <div className="bg-black p-8 text-white flex justify-between items-center">
+                                <div>
+                                    <h3 className="text-xl font-black uppercase italic tracking-tighter">{isEditMode ? "Edit Item" : "New Entry"}</h3>
+                                    <p className="text-[8px] text-slate-500 uppercase tracking-widest mt-1 font-black">Technical Update</p>
+                                </div>
+                                <button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} /></button>
+                            </div>
+                            <form onSubmit={handleSaveItem} className="p-8 space-y-6">
+                                <div className="space-y-4">
+                                    <input required placeholder="Item Name" className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-black text-sm outline-none focus:border-black transition-all" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <input required placeholder="SKU ID" className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-black text-sm outline-none focus:border-black transition-all" value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} />
+                                        <select className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-black text-sm outline-none focus:border-black transition-all" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
+                                            <option value="Pharmacy">Pharmacy</option>
+                                            <option value="Supplies">Supplies</option>
+                                            <option value="Equipment">Equipment</option>
+                                        </select>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <input type="number" placeholder="Stock" className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-black text-sm outline-none focus:border-black transition-all" value={formData.stock_quantity} onChange={(e) => setFormData({ ...formData, stock_quantity: parseInt(e.target.value) })} />
+                                        <input placeholder="Unit" className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-black text-sm outline-none focus:border-black transition-all" value={formData.unit} onChange={(e) => setFormData({ ...formData, unit: e.target.value })} />
+                                        <input type="number" placeholder="Min" className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-black text-sm outline-none focus:border-black transition-all" value={formData.min_stock_level} onChange={(e) => setFormData({ ...formData, min_stock_level: parseInt(e.target.value) })} />
+                                    </div>
+                                </div>
+                                <button disabled={isSaving} className="w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-600 transition-all shadow-xl flex items-center justify-center gap-3">
+                                    {isSaving ? <Loader2 className="animate-spin" size={18} /> : "Finalize Entry"}
+                                </button>
+                            </form>
                         </div>
                     </div>
                 )}
