@@ -37,6 +37,8 @@ export default function BookAppointment() {
     const [appointmentId, setAppointmentId] = useState(null);
     const [qrCodeDataUrl, setQrCodeDataUrl] = useState(null);
     const [bookingError, setBookingError] = useState(null);
+    const [bookedSlots, setBookedSlots] = useState([]);
+    const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
     // --- PRE-FILL DATA IF RESCHEDULING ---
     useEffect(() => {
@@ -53,6 +55,31 @@ export default function BookAppointment() {
     useEffect(() => {
         setBookingError(null);
     }, [selectedDate, selectedTime, monthIndex, currentYear]);
+
+    // --- FETCH BOOKED SLOTS FOR SELECTED DATE ---
+    useEffect(() => {
+        const fetchBookedSlots = async () => {
+            setIsLoadingSlots(true);
+            try {
+                const formattedDate = `${currentYear}-${(monthIndex + 1).toString().padStart(2, '0')}-${selectedDate.toString().padStart(2, '0')}`;
+                const { data, error } = await supabase
+                    .from('appointments')
+                    .select('appointment_time')
+                    .eq('appointment_date', formattedDate)
+                    .not('status', 'in', '("CANCELLED","EXPIRED")');
+
+                if (error) throw error;
+                setBookedSlots(data ? data.map(a => a.appointment_time) : []);
+            } catch (err) {
+                console.error('Error fetching booked slots:', err.message);
+                setBookedSlots([]);
+            } finally {
+                setIsLoadingSlots(false);
+            }
+        };
+
+        fetchBookedSlots();
+    }, [selectedDate, monthIndex, currentYear]);
 
     // --- FETCH USER PROFILE ---
     useEffect(() => {
@@ -103,7 +130,8 @@ export default function BookAppointment() {
 
             // --- DUPLICATE BOOKING CHECK (new bookings only) ---
             if (!rescheduleData) {
-                const { data: conflict } = await supabase
+                // Check 1: Same user already has this slot
+                const { data: ownConflict } = await supabase
                     .from('appointments')
                     .select('id')
                     .eq('user_id', user.id)
@@ -112,9 +140,31 @@ export default function BookAppointment() {
                     .not('status', 'in', '("CANCELLED","EXPIRED")')
                     .maybeSingle();
 
-                if (conflict) {
+                if (ownConflict) {
                     setBookingError('You already have an appointment at this date and time. Please choose a different schedule.');
                     setIsSaving(false);
+                    return;
+                }
+
+                // Check 2: Another client already booked this slot (global conflict)
+                const { data: globalConflict } = await supabase
+                    .from('appointments')
+                    .select('id')
+                    .eq('appointment_date', formattedDate)
+                    .eq('appointment_time', selectedTime)
+                    .not('status', 'in', '("CANCELLED","EXPIRED")')
+                    .maybeSingle();
+
+                if (globalConflict) {
+                    setBookingError('This time slot has just been taken by another client. Please select a different time.');
+                    setIsSaving(false);
+                    // Refresh booked slots so the UI reflects the latest state
+                    const { data: refreshed } = await supabase
+                        .from('appointments')
+                        .select('appointment_time')
+                        .eq('appointment_date', formattedDate)
+                        .not('status', 'in', '("CANCELLED","EXPIRED")');
+                    if (refreshed) setBookedSlots(refreshed.map(a => a.appointment_time));
                     return;
                 }
             }
@@ -296,9 +346,31 @@ export default function BookAppointment() {
                                 <section className="space-y-6">
                                     <h3 className="section-title"><Clock size={20} /> Select Time</h3>
                                     <div className="time-slots-grid">
-                                        {timeSlots.map(time => (
-                                            <button key={time} onClick={() => setSelectedTime(time)} className={`time-slot ${selectedTime === time ? 'time-slot--selected' : ''}`}>{time}</button>
-                                        ))}
+                                        {isLoadingSlots ? (
+                                            <p className="text-slate-400 text-sm col-span-3">Loading availability...</p>
+                                        ) : (
+                                            timeSlots.map(time => {
+                                                const isBooked = bookedSlots.includes(time);
+                                                return (
+                                                    <button
+                                                        key={time}
+                                                        onClick={() => !isBooked && setSelectedTime(time)}
+                                                        disabled={isBooked}
+                                                        title={isBooked ? 'This slot is already taken' : ''}
+                                                        className={`time-slot ${
+                                                            isBooked
+                                                                ? 'time-slot--booked'
+                                                                : selectedTime === time
+                                                                    ? 'time-slot--selected'
+                                                                    : ''
+                                                        }`}
+                                                    >
+                                                        {time}
+                                                        {isBooked && <span className="time-slot-taken-label">Taken</span>}
+                                                    </button>
+                                                );
+                                            })
+                                        )}
                                     </div>
                                 </section>
                             </div>
