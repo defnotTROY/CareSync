@@ -127,6 +127,37 @@ export default function PaymentRecords() {
         return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
     };
 
+    const handleExportCSV = () => {
+        if (!filteredTxns || filteredTxns.length === 0) {
+            alert("No data to export.");
+            return;
+        }
+
+        const headers = ['Transaction ID', 'Reference', 'Patient', 'Method', 'Amount', 'Status', 'Date'];
+        const csvRows = [headers.join(',')];
+
+        filteredTxns.forEach(txn => {
+            const row = [
+                txn.id,
+                txn.ref,
+                `"${txn.patient}"`, // Escape commas
+                txn.method,
+                txn.amount,
+                txn.status,
+                `"${txn.date}"` // Escape commas
+            ];
+            csvRows.push(row.join(','));
+        });
+
+        const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `payment_records_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const handleLogout = async () => {
         await supabase.auth.signOut();
         navigate('/login');
@@ -210,7 +241,7 @@ export default function PaymentRecords() {
                                     className="staff-search-input-sm" 
                                 />
                             </div>
-                            <button className="staff-btn-primary" onClick={() => alert("CSV Export coming soon.")}>
+                            <button className="staff-btn-primary" onClick={handleExportCSV}>
                                 <Download size={16} /> Export CSV
                             </button>
                         </div>

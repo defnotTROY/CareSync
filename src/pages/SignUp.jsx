@@ -291,7 +291,7 @@ export default function SignUp() {
                 <div className="auth-brand-panel hidden lg:flex relative bg-black overflow-hidden p-20 flex-col justify-between">
                     <ShieldCheck className="absolute -left-20 -top-20 -rotate-12 opacity-5 text-white" size={400} />
                     <Link to="/" className="relative flex items-center gap-3">
-                        <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center font-black text-white text-2xl italic shadow-lg">C</div>
+                        <img src="/mjylogo.png" alt="MJY Logo" className="w-12 h-12 object-contain bg-white rounded-full p-1 shadow-lg" />
                         <span className="text-white font-black text-2xl tracking-tighter italic">CareSync</span>
                     </Link>
                     <div className="relative space-y-6">
