@@ -75,7 +75,7 @@ export const AuthProvider = ({ children }) => {
       {loading ? (
         <div className="min-h-screen flex flex-col items-center justify-center bg-white">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-black mb-4"></div>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bypassing Auth...</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading...</p>
         </div>
       ) : (
         children
