@@ -48,6 +48,7 @@ const StaffManagement = lazy(() => import("./pages/admin/StaffManagement.jsx"));
 const RevenueTracker = lazy(() => import("./pages/admin/RevenueTracker.jsx"));
 const Inventory = lazy(() => import("./pages/admin/Inventory.jsx"));
 const Maintenance = lazy(() => import("./pages/admin/Maintenance.jsx"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings.jsx")); // ADD THIS LINE
 
 // --- UPDATED LOADER ---
 function PageLoader() {
@@ -121,6 +122,7 @@ function AnimatedRoutes() {
         <Route path="/admin/revenue" element={<ProtectedRoute allowedRoles={['admin']}><RevenueTracker /></ProtectedRoute>} />
         <Route path="/admin/inventory" element={<ProtectedRoute allowedRoles={['admin']}><Inventory /></ProtectedRoute>} />
         <Route path="/admin/maintenance" element={<ProtectedRoute allowedRoles={['admin']}><Maintenance /></ProtectedRoute>} />
+        <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><AdminSettings /></ProtectedRoute>} />
       </Routes>
     </AnimatePresence>
   );

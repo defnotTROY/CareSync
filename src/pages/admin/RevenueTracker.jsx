@@ -1,35 +1,25 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
-    LayoutDashboard, Users, BadgeDollarSign, Warehouse,
-    Wrench, Settings, LogOut, Search,
-    ArrowUpRight, FileText, Calendar, TrendingUp, CreditCard,
-    Loader2
+    BadgeDollarSign, Search, FileText, Loader2, RefreshCw, TrendingUp, CreditCard, X
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase.js';
 import PageTransition from "../../components/layout/PageTransition.jsx";
+import AdminSidebar from "../../components/layout/AdminSidebar.jsx";
+import AdminHeader from "../../components/layout/AdminHeader.jsx";
 
-// --- IMPORTANT: PDF IMPORTS ---
+// PDF IMPORTS
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export default function RevenueTracker() {
-    const location = useLocation();
-    const navigate = useNavigate();
-
-    const [appointments, setAppointments] = useState([]);
+    const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterRange, setFilterRange] = useState('all');
-    const [stats, setStats] = useState({ gross: 0, net: 0 });
 
-    const navItems = [
-        { name: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
-        { name: 'Staff Management', icon: Users, path: '/admin/staff' },
-        { name: 'Revenue', icon: BadgeDollarSign, path: '/admin/revenue' },
-        { name: 'Inventory', icon: Warehouse, path: '/admin/inventory' },
-        { name: 'Maintenance', icon: Wrench, path: '/admin/maintenance' },
-    ];
+    const [appointments, setAppointments] = useState([]);
+    const [stats, setStats] = useState({ gross: 0, net: 0, count: 0 });
 
     useEffect(() => {
         fetchRevenueData();
@@ -38,17 +28,42 @@ export default function RevenueTracker() {
     async function fetchRevenueData() {
         try {
             setLoading(true);
-            const { data, error } = await supabase
+
+            // STEP 1: Fetch only COMPLETED appointments with an amount
+            const { data: aptData, error: aptError } = await supabase
                 .from('appointments')
-                .select(`*, profiles:user_id (full_name)`)
+                .select('*')
+                .eq('status', 'COMPLETED')
                 .not('amount', 'is', null)
                 .order('appointment_date', { ascending: false });
 
-            if (error) throw error;
-            setAppointments(data || []);
-            calculateRevenue(data || []);
+            if (aptError) throw aptError;
+
+            if (aptData && aptData.length > 0) {
+                // STEP 2: Collect all unique user IDs to fetch profiles
+                const userIds = [...new Set(aptData.map(a => a.user_id))];
+
+                const { data: profData, error: profError } = await supabase
+                    .from('profiles')
+                    .select('id, first_name, last_name')
+                    .in('id', userIds);
+
+                if (profError) throw profError;
+
+                // STEP 3: Manually merge profiles into appointments
+                const mergedData = aptData.map(apt => ({
+                    ...apt,
+                    profiles: profData.find(p => p.id === apt.user_id) || null
+                }));
+
+                setAppointments(mergedData);
+                calculateRevenue(mergedData);
+            } else {
+                setAppointments([]);
+                setStats({ gross: 0, net: 0, count: 0 });
+            }
         } catch (err) {
-            console.error("Fetch error:", err.message);
+            console.error("Audit Fetch Error:", err.message);
         } finally {
             setLoading(false);
         }
@@ -57,15 +72,17 @@ export default function RevenueTracker() {
     const calculateRevenue = (data) => {
         const gross = data.reduce((sum, item) => sum + Number(item.amount || 0), 0);
         const net = gross * 0.85;
-        setStats({ gross, net });
+        setStats({ gross, net, count: data.length });
     };
 
     const getFilteredData = () => {
         const now = new Date();
         return appointments.filter(apt => {
             const aptDate = new Date(apt.appointment_date);
+            const patientName = `${apt.profiles?.first_name || ''} ${apt.profiles?.last_name || ''}`.trim();
+
             const matchesSearch = (
-                (apt.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                (patientName.toLowerCase().includes(searchQuery.toLowerCase())) ||
                 (apt.purpose?.toLowerCase().includes(searchQuery.toLowerCase()))
             );
 
@@ -86,165 +103,178 @@ export default function RevenueTracker() {
 
     const filteredData = getFilteredData();
 
-    // --- UPDATED PDF EXPORT FUNCTION ---
     const exportToPDF = () => {
         try {
             const doc = new jsPDF();
-
-            // 1. Setup Header
-            doc.setFontSize(20);
-            doc.setTextColor(0, 0, 0);
-            doc.text("CARESYNC REVENUE AUDIT", 14, 22);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(22);
+            doc.text("CARESYNC COMPLETED REVENUE AUDIT", 14, 22);
 
             doc.setFontSize(10);
-            doc.setTextColor(100);
-            doc.text(`Report Period: ${filterRange.toUpperCase()}`, 14, 30);
-            doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 35);
-            doc.text(`Total Gross Revenue: PHP ${stats.gross.toLocaleString()}`, 14, 40);
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(120);
+            doc.text(`Audit Filter: COMPLETED TRANSACTIONS`, 14, 32);
+            doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 37);
 
-            // 2. Prepare Table Data with Null Checks
-            const tableColumn = ["Patient Name", "Purpose of Visit", "Method", "Date", "Amount"];
+            doc.setDrawColor(240);
+            doc.line(14, 42, 196, 42);
+
+            const tableColumn = ["Patient", "Purpose", "Payment", "Date", "Amount"];
             const tableRows = filteredData.map(apt => [
-                apt.profiles?.full_name || "Guest/Unknown",
-                apt.purpose || "N/A",
+                `${apt.profiles?.first_name || 'Guest'} ${apt.profiles?.last_name || ''}`,
+                (apt.purpose || "Service").toUpperCase(),
                 (apt.payment_method || "CASH").toUpperCase(),
                 new Date(apt.appointment_date).toLocaleDateString(),
-                `P${Number(apt.amount || 0).toLocaleString()}`
+                `PHP ${Number(apt.amount || 0).toLocaleString()}`
             ]);
 
-            // 3. Generate Table
             autoTable(doc, {
                 startY: 50,
                 head: [tableColumn],
                 body: tableRows,
-                headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' },
-                alternateRowStyles: { fillColor: [245, 245, 245] },
-                margin: { top: 50 },
+                styles: { fontSize: 8, font: "helvetica" },
+                headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] },
+                alternateRowStyles: { fillColor: [250, 250, 250] },
             });
 
-            // 4. Save the file
-            doc.save(`CareSync_Revenue_${filterRange}_${Date.now()}.pdf`);
-
+            doc.save(`CareSync_Audit_${Date.now()}.pdf`);
         } catch (error) {
-            console.error("PDF Generation Error:", error);
-            alert("Could not generate PDF. Check console for details.");
+            console.error("PDF Failed:", error);
         }
     };
 
     return (
         <PageTransition>
-            <div className="flex min-h-screen bg-[#F8FAFC] text-slate-900 font-sans relative">
+            <div className="flex min-h-screen bg-[#F8FAFC]">
+                <AdminSidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-                {/* SIDEBAR */}
-                <aside className="w-72 bg-black flex flex-col justify-between py-10 px-6 shrink-0 h-screen sticky top-0">
-                    <div className="space-y-10">
-                        <div className="flex items-center gap-3 px-2">
-                            <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center font-bold text-white text-xl italic shadow-lg">C</div>
-                            <div className="flex flex-col text-white font-black uppercase tracking-tight leading-none">
-                                <span className="text-lg italic tracking-tighter">CareSync</span>
-                                <span className="text-slate-500 text-[10px] tracking-widest mt-1 uppercase">Admin Portal</span>
+                <div className="flex-1 flex flex-col min-w-0 md:ml-20 lg:ml-72">
+                    <AdminHeader title="Revenue Terminal" onMenuClick={() => setSidebarOpen(true)} />
+
+                    <main className="p-6 lg:p-12 space-y-12">
+                        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
+                            <div className="space-y-1">
+                                <h1 className="text-4xl lg:text-6xl font-black text-slate-950 uppercase tracking-tighter leading-none italic">Revenue</h1>
+                                <p className="text-slate-500 font-black uppercase text-[10px] tracking-[0.3em]">Verified Completed Audits</p>
                             </div>
-                        </div>
-                        <nav className="space-y-1">
-                            {navItems.map((item) => (
-                                <Link key={item.name} to={item.path} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all ${location.pathname === item.path ? 'bg-white text-black font-bold shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-                                    <item.icon size={20} className={location.pathname === item.path ? 'text-black' : 'text-slate-400'} />
-                                    <span className="text-sm uppercase tracking-wide">{item.name}</span>
-                                </Link>
-                            ))}
-                        </nav>
-                    </div>
-                </aside>
-
-                <main className="flex-1 p-12 space-y-10 overflow-y-auto">
-                    <header className="flex justify-between items-end">
-                        <div className="space-y-1">
-                            <h1 className="text-5xl font-black text-slate-950 uppercase tracking-tighter italic">Revenue</h1>
-                            <p className="text-slate-500 font-medium uppercase text-[10px] tracking-[0.2em]">Financial Tracking & PDF Reporting</p>
-                        </div>
-                        <button
-                            onClick={exportToPDF}
-                            className="px-8 py-4 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-red-600 transition-all shadow-xl"
-                        >
-                            <FileText size={16} /> Export PDF Report
-                        </button>
-                    </header>
-
-                    {/* TOP STATS */}
-                    <div className="grid grid-cols-2 gap-8">
-                        <div className="bg-white p-10 rounded-[3rem] border-2 border-slate-50 shadow-sm space-y-6">
-                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Total Gross Revenue</p>
-                            <h3 className="text-4xl font-black text-slate-950 italic">₱{stats.gross.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
-                        </div>
-                        <div className="bg-white p-10 rounded-[3rem] border-2 border-slate-50 shadow-sm space-y-6">
-                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Net Collection (Est.)</p>
-                            <h3 className="text-4xl font-black text-slate-950 italic">₱{stats.net.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
-                        </div>
-                    </div>
-
-                    {/* FILTERS & SEARCH */}
-                    <section className="space-y-6">
-                        <div className="flex justify-between items-center px-2">
-                            <div className="flex gap-2">
-                                {['all', 'daily', 'weekly', 'monthly', 'yearly'].map((range) => (
-                                    <button
-                                        key={range}
-                                        onClick={() => setFilterRange(range)}
-                                        className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterRange === range ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border border-slate-100 text-slate-400 hover:border-slate-300'}`}
-                                    >
-                                        {range}
-                                    </button>
-                                ))}
+                            <div className="flex gap-3">
+                                <button onClick={fetchRevenueData} className="p-4 bg-white border-2 border-slate-100 rounded-2xl text-slate-400 hover:text-black hover:border-black transition-all">
+                                    <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+                                </button>
+                                <button
+                                    onClick={exportToPDF}
+                                    className="px-8 py-4 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-emerald-600 transition-all shadow-xl"
+                                >
+                                    <FileText size={16} /> Export PDF
+                                </button>
                             </div>
-                            <div className="relative">
-                                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="SEARCH TRANSACTION..."
-                                    className="pl-14 pr-8 py-4 bg-white border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase outline-none focus:border-black w-80 shadow-sm"
-                                />
+                        </header>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div className="bg-white p-10 rounded-[3rem] border-2 border-slate-100 shadow-sm space-y-4 hover:border-black transition-all group">
+                                <TrendingUp className="text-slate-300 group-hover:text-emerald-500 transition-colors" size={24} />
+                                <div>
+                                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Gross Revenue</p>
+                                    <h3 className="text-4xl font-black text-slate-950 italic tracking-tighter">
+                                        ₱{stats.gross.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    </h3>
+                                </div>
+                            </div>
+                            <div className="bg-white p-10 rounded-[3rem] border-2 border-slate-100 shadow-sm space-y-4 hover:border-black transition-all group">
+                                <CreditCard className="text-slate-300 group-hover:text-emerald-500 transition-colors" size={24} />
+                                <div>
+                                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Net Collection</p>
+                                    <h3 className="text-4xl font-black text-slate-950 italic tracking-tighter">
+                                        ₱{stats.net.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    </h3>
+                                </div>
+                            </div>
+                            <div className="bg-black p-10 rounded-[3rem] shadow-2xl space-y-4">
+                                <BadgeDollarSign className="text-emerald-500" size={24} />
+                                <div>
+                                    <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Verified Files</p>
+                                    <h3 className="text-4xl font-black text-white italic tracking-tighter">
+                                        {stats.count} <span className="text-[12px] text-slate-500 not-italic tracking-normal font-bold">Total</span>
+                                    </h3>
+                                </div>
                             </div>
                         </div>
 
-                        {/* TABLE */}
-                        <div className="bg-white border-2 border-slate-50 rounded-[3rem] shadow-sm overflow-hidden">
-                            {loading ? (
-                                <div className="flex justify-center py-24"><Loader2 className="animate-spin text-emerald-500" size={48} /></div>
-                            ) : (
-                                <table className="w-full text-left">
-                                    <thead className="bg-black text-white">
-                                        <tr>
-                                            <th className="px-10 py-7 text-[10px] font-black uppercase tracking-widest text-slate-400">Patient</th>
-                                            <th className="px-10 py-7 text-[10px] font-black uppercase tracking-widest text-slate-400">Purpose</th>
-                                            <th className="px-10 py-7 text-[10px] font-black uppercase tracking-widest text-slate-400">Amount</th>
-                                            <th className="px-10 py-7 text-[10px] font-black uppercase tracking-widest text-slate-400">Date</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-50 font-bold">
-                                        {filteredData.length > 0 ? filteredData.map((apt) => (
-                                            <tr key={apt.id} className="hover:bg-slate-50/80 transition-all">
-                                                <td className="px-10 py-7 font-black text-slate-900 uppercase text-xs">
-                                                    {apt.profiles?.full_name || 'Guest User'}
-                                                </td>
-                                                <td className="px-10 py-7 uppercase text-[10px] text-slate-400 tracking-tight">{apt.purpose}</td>
-                                                <td className="px-10 py-7 font-black text-slate-950 text-base italic">₱{Number(apt.amount).toLocaleString()}</td>
-                                                <td className="px-10 py-7 text-slate-400 text-[10px]">
-                                                    {new Date(apt.appointment_date).toLocaleDateString()}
-                                                </td>
-                                            </tr>
-                                        )) : (
-                                            <tr>
-                                                <td colSpan="4" className="text-center py-20 text-slate-300 font-black uppercase tracking-widest">No matching records</td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            )}
-                        </div>
-                    </section>
-                </main>
+                        <section className="space-y-6">
+                            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+                                <div className="flex flex-wrap gap-2">
+                                    {['all', 'daily', 'weekly', 'monthly', 'yearly'].map((range) => (
+                                        <button
+                                            key={range}
+                                            onClick={() => setFilterRange(range)}
+                                            className={`px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border-2 ${filterRange === range
+                                                ? 'bg-black text-white border-black shadow-lg'
+                                                : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
+                                                }`}
+                                        >
+                                            {range}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="relative w-full xl:w-96">
+                                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        placeholder="SEARCH COMPLETED AUDITS..."
+                                        className="w-full pl-14 pr-8 py-4 bg-white border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase outline-none focus:border-black shadow-sm"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="bg-white border-2 border-slate-100 rounded-[2.5rem] shadow-sm overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    {loading ? (
+                                        <div className="flex justify-center py-24"><Loader2 className="animate-spin text-black" size={48} /></div>
+                                    ) : (
+                                        <table className="w-full text-left min-w-[800px]">
+                                            <thead className="bg-black text-white text-[9px] font-black uppercase tracking-[0.2em]">
+                                                <tr>
+                                                    <th className="px-10 py-6">Patient Entity</th>
+                                                    <th className="px-10 py-6">Purpose</th>
+                                                    <th className="px-10 py-6">Method</th>
+                                                    <th className="px-10 py-6 text-center">Date</th>
+                                                    <th className="px-10 py-6 text-right">Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-50 text-[10px] font-black uppercase tracking-tight">
+                                                {filteredData.length > 0 ? filteredData.map((apt) => (
+                                                    <tr key={apt.id} className="hover:bg-slate-50 transition-colors group">
+                                                        <td className="px-10 py-7 text-slate-900 font-bold capitalize">
+                                                            {apt.profiles?.first_name} {apt.profiles?.last_name}
+                                                        </td>
+                                                        <td className="px-10 py-7 text-slate-400 tracking-widest">{apt.purpose || "N/A"}</td>
+                                                        <td className="px-10 py-7">
+                                                            <span className="px-3 py-1 bg-slate-100 rounded-lg text-[8px] border border-slate-200 uppercase">
+                                                                {apt.payment_method || 'CASH'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-10 py-7 text-slate-400 text-center">
+                                                            {new Date(apt.appointment_date).toLocaleDateString()}
+                                                        </td>
+                                                        <td className="px-10 py-7 text-right font-black text-slate-950 text-sm italic group-hover:text-emerald-600 transition-colors">
+                                                            ₱{Number(apt.amount).toLocaleString()}
+                                                        </td>
+                                                    </tr>
+                                                )) : (
+                                                    <tr>
+                                                        <td colSpan="5" className="text-center py-24 text-slate-300 italic tracking-[0.3em] font-black">No Verified Completed Transactions</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
+                            </div>
+                        </section>
+                    </main>
+                </div>
             </div>
         </PageTransition>
     );
