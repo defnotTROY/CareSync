@@ -64,7 +64,7 @@ export default function ClientDashboard() {
                     let [h, m] = time.split(':').map(Number);
                     if (meridiem === 'PM' && h !== 12) h += 12;
                     if (meridiem === 'AM' && h === 12) h = 0;
-                    const aptDt = new Date(`${apt.appointment_date}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`);
+                    const aptDt = new Date(`${apt.appointment_date}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`);
                     return aptDt < now;
                 });
 
@@ -176,7 +176,9 @@ export default function ClientDashboard() {
                         <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
                             <Calendar size={48} className="text-slate-300 mb-4" />
                             <h3 className="text-lg font-bold text-slate-900">No Upcoming Appointments</h3>
-                            <p className="text-slate-500 mb-6">You don't have any evaluations scheduled at the moment.</p>
+                            <p className="text-center text-slate-500 mb-6">
+                                You don't have any evaluations scheduled at the moment.
+                            </p>
                             <Link to="/book" className="bg-black text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-black/10 hover:bg-slate-800 transition-all">Book Now</Link>
                         </div>
                     )}
