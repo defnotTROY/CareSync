@@ -12,7 +12,7 @@ export function useLiveQueue() {
             if (waitingQueue.length === 0 && servingNow.length === 0) {
                 setLoading(true);
             }
-            
+
             const { data: appointments, error } = await supabase
                 .from('appointments')
                 .select('*')
@@ -29,14 +29,17 @@ export function useLiveQueue() {
             }
 
             const userIds = [...new Set(appointments.map(a => a.user_id).filter(Boolean))];
+
+            // FIXED: Fetching first_name and last_name instead of full_name
             const { data: profiles } = await supabase
                 .from('profiles')
-                .select('id, full_name')
+                .select('id, first_name, last_name')
                 .in('id', userIds);
 
             const merged = appointments.map(apt => ({
                 ...apt,
-                profiles: (profiles || []).find(p => String(p.id) === String(apt.user_id)) || { full_name: "Unknown Patient" }
+                // FIXED: Passed the fallback as first_name and last_name
+                profiles: (profiles || []).find(p => String(p.id) === String(apt.user_id)) || { first_name: "Unknown", last_name: "Patient" }
             }));
 
             setWaitingQueue(merged.filter(a => a.status === 'ON_CASHIER'));

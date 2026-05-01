@@ -27,7 +27,7 @@ export default function Consultation() {
     const [patientData, setPatientData] = useState(null);
     const [saving, setSaving] = useState(false);
 
-    // Initial state matching your database schema
+    // Initial state matching your database schema (Removed follow_up_date)
     const [formData, setFormData] = useState({
         visual_acuity_le: '',
         visual_acuity_re: '',
@@ -43,9 +43,7 @@ export default function Consultation() {
         diagnosis: '',
         icd_code: '',
         treatment_plan: '',
-        medications: '',
-        follow_up_date: '',
-        follow_up_notes: '',
+        medications: ''
     });
 
     useEffect(() => {
@@ -98,9 +96,7 @@ export default function Consultation() {
                 appointment_id: appointment.id,
                 doctor_id: user.id,
                 patient_id: appointment.user_id,
-                ...formData,
-                // Ensure empty date strings are sent as null to avoid DB errors
-                follow_up_date: formData.follow_up_date || null,
+                ...formData
             };
 
             // 2. Insert into database
@@ -341,33 +337,21 @@ export default function Consultation() {
                                         </div>
                                     </div>
 
-                                    <div className="pt-8 border-t border-slate-50 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-                                        <div className="flex flex-col w-full lg:w-auto">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Follow-up Date</label>
-                                            <input
-                                                type="date"
-                                                value={formData.follow_up_date}
-                                                onChange={(e) => handleInputChange('follow_up_date', e.target.value)}
-                                                className="mt-2 p-4 bg-slate-50 rounded-xl font-bold outline-none cursor-pointer border-2 border-transparent focus:border-black w-full"
-                                            />
-                                        </div>
-
-                                        <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-                                            <button
-                                                onClick={() => navigate('/doctor/queue')}
-                                                className="w-full sm:w-auto px-10 py-5 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-200 transition-all text-center"
-                                            >
-                                                Discard
-                                            </button>
-                                            <button
-                                                onClick={handleSubmit}
-                                                disabled={saving}
-                                                className="w-full sm:w-auto px-12 py-5 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all shadow-xl disabled:opacity-50"
-                                            >
-                                                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                                                {saving ? 'Saving...' : 'Finalize Consultation'}
-                                            </button>
-                                        </div>
+                                    <div className="pt-8 border-t border-slate-50 flex flex-col sm:flex-row justify-end gap-4 w-full">
+                                        <button
+                                            onClick={() => navigate('/doctor/queue')}
+                                            className="w-full sm:w-auto px-10 py-5 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-200 transition-all text-center"
+                                        >
+                                            Discard
+                                        </button>
+                                        <button
+                                            onClick={handleSubmit}
+                                            disabled={saving}
+                                            className="w-full sm:w-auto px-12 py-5 bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all shadow-xl disabled:opacity-50"
+                                        >
+                                            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                            {saving ? 'Saving...' : 'Finalize Consultation'}
+                                        </button>
                                     </div>
                                 </section>
                             </>

@@ -60,10 +60,15 @@ export default function ClientCheckIn() {
                 if (user) {
                     const { data: profile } = await supabase
                         .from('profiles')
-                        .select('full_name')
+                        .select('first_name, last_name')
                         .eq('id', user.id)
                         .single();
-                    setStaffName(profile?.full_name || "Staff Member");
+
+                    const formattedName = profile
+                        ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
+                        : "Staff Member";
+
+                    setStaffName(formattedName || "Staff Member");
                 }
             } catch (err) { console.error(err); }
             finally { setStaffLoading(false); }
@@ -115,7 +120,7 @@ export default function ClientCheckIn() {
         try {
             const { data: appointment, error: aptError } = await supabase
                 .from('appointments')
-                .select('*, profiles:user_id (id, full_name)')
+                .select('*, profiles:user_id (id, first_name, last_name)')
                 .eq('id', rawId)
                 .single();
 
@@ -133,7 +138,7 @@ export default function ClientCheckIn() {
             let [h, m] = timeStr.split(':').map(Number);
             if (meridiem === 'PM' && h !== 12) h += 12;
             if (meridiem === 'AM' && h === 12) h = 0;
-            const aptDateTime = new Date(`${appointment.appointment_date}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`);
+            const aptDateTime = new Date(`${appointment.appointment_date}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`);
 
             if (isNaN(aptDateTime.getTime())) {
                 await logFailedScan(rawId, 'INVALID_DATETIME_IN_RECORD');
@@ -205,10 +210,14 @@ export default function ClientCheckIn() {
         setHasSearched(true);
         try {
             const todayStr = new Date().toISOString().split('T')[0];
-            const { data: matchedProfiles } = await supabase.from('profiles').select('id').ilike('full_name', `%${searchQuery}%`);
+            const { data: matchedProfiles } = await supabase
+                .from('profiles')
+                .select('id')
+                .or(`first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%`);
+
             const matchedUserIds = (matchedProfiles || []).map(p => p.id);
 
-            let query = supabase.from('appointments').select('*, profiles:user_id (id, full_name)')
+            let query = supabase.from('appointments').select('*, profiles:user_id (id, first_name, last_name)')
                 .eq('appointment_date', todayStr)
                 .not('status', 'in', '("COMPLETED","ON_CASHIER","ON_DOCTOR")');
 
@@ -343,7 +352,9 @@ export default function ClientCheckIn() {
                                             <div className="max-height-[300px] overflow-y-auto space-y-2">
                                                 {searchResults.map(apt => (
                                                     <button key={apt.id} onClick={() => setSelectedApt(apt)} className={`w-full p-4 border-2 rounded-2xl text-left transition-all ${selectedApt?.id === apt.id ? 'border-black bg-slate-50' : 'border-slate-50'}`}>
-                                                        <p className="font-black uppercase text-sm">{apt.profiles?.full_name}</p>
+                                                        <p className="font-black uppercase text-sm">
+                                                            {apt.profiles ? `${apt.profiles.first_name || ''} ${apt.profiles.last_name || ''}`.trim() : 'Patient'}
+                                                        </p>
                                                         <p className="text-[10px] font-bold text-slate-400">{apt.appointment_time} • {apt.purpose}</p>
                                                     </button>
                                                 ))}
@@ -360,7 +371,9 @@ export default function ClientCheckIn() {
                                     <div className="flex justify-between items-center border-b pb-6">
                                         <div>
                                             <p className="text-[10px] font-black text-emerald-500 uppercase">Selected Patient</p>
-                                            <h3 className="text-2xl font-black uppercase tracking-tight">{selectedApt.profiles?.full_name}</h3>
+                                            <h3 className="text-2xl font-black uppercase tracking-tight">
+                                                {selectedApt.profiles ? `${selectedApt.profiles.first_name || ''} ${selectedApt.profiles.last_name || ''}`.trim() : 'Patient'}
+                                            </h3>
                                         </div>
                                         <button onClick={() => setSelectedApt(null)} className="text-slate-300 hover:text-black"><X size={24} /></button>
                                     </div>

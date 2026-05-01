@@ -39,20 +39,26 @@ export default function ClientQueue() {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
+                // FIXED: Fetching first_name and last_name instead of full_name
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('full_name')
+                    .select('first_name, last_name')
                     .eq('id', user.id)
                     .single();
-                setStaffName(profile?.full_name || "Staff Member");
+
+                const formattedName = profile
+                    ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
+                    : "Staff Member";
+
+                setStaffName(formattedName || "Staff Member");
             }
         } catch (err) { console.error(err); }
         finally { setStaffLoading(false); }
     }
+
     const handleMoveToDoctor = async (id) => {
         setActioningId(id);
         try {
-            // FIX: Updated status to 'ON_DOCTOR' to move the patient forward to the doctor's view
             await supabase
                 .from('appointments')
                 .update({
@@ -149,20 +155,29 @@ export default function ClientQueue() {
                                 </h3>
                                 <div className="space-y-3">
                                     {waitingQueue.length > 0 ? (
-                                        waitingQueue.map((patient) => (
-                                            <div key={patient.id} className="p-6 bg-white border-2 border-slate-50 border-l-amber-400 border-l-4 rounded-3xl flex items-center justify-between shadow-sm group hover:border-black transition-all">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center font-black">{patient.profiles?.full_name?.charAt(0)}</div>
-                                                    <div>
-                                                        <h4 className="font-black uppercase text-slate-900">{patient.profiles?.full_name}</h4>
-                                                        <p className="text-[9px] font-bold text-slate-400 uppercase">{patient.purpose || 'Check-up'}</p>
+                                        waitingQueue.map((patient) => {
+                                            // Format patient name safely
+                                            const patientName = patient.profiles
+                                                ? `${patient.profiles.first_name || ''} ${patient.profiles.last_name || ''}`.trim()
+                                                : 'Patient';
+
+                                            return (
+                                                <div key={patient.id} className="p-6 bg-white border-2 border-slate-50 border-l-amber-400 border-l-4 rounded-3xl flex items-center justify-between shadow-sm group hover:border-black transition-all">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center font-black">
+                                                            {patient.profiles?.first_name?.charAt(0) || 'P'}
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-black uppercase text-slate-900">{patientName}</h4>
+                                                            <p className="text-[9px] font-bold text-slate-400 uppercase">{patient.purpose || 'Check-up'}</p>
+                                                        </div>
                                                     </div>
+                                                    <button onClick={() => handleMoveToDoctor(patient.id)} disabled={actioningId === patient.id} className="px-6 py-3 bg-amber-500 text-white rounded-xl text-[9px] font-black uppercase hover:bg-black transition-all">
+                                                        Confirm Payment
+                                                    </button>
                                                 </div>
-                                                <button onClick={() => handleMoveToDoctor(patient.id)} disabled={actioningId === patient.id} className="px-6 py-3 bg-amber-500 text-white rounded-xl text-[9px] font-black uppercase hover:bg-black transition-all">
-                                                    Confirm Payment
-                                                </button>
-                                            </div>
-                                        ))
+                                            )
+                                        })
                                     ) : (
                                         <div className="py-20 text-center border-2 border-dashed border-slate-100 rounded-[2.5rem] font-black uppercase text-[10px] text-slate-300">Cashier is empty</div>
                                     )}
@@ -176,6 +191,12 @@ export default function ClientQueue() {
                                     {servingNow.length > 0 ? (
                                         servingNow.map((patient) => {
                                             const inRoom = patient.status === 'ON_DOCTOR' || patient.status === 'IN_PROGRESS';
+
+                                            // Format patient name safely
+                                            const patientName = patient.profiles
+                                                ? `${patient.profiles.first_name || ''} ${patient.profiles.last_name || ''}`.trim()
+                                                : 'Patient';
+
                                             return (
                                                 <div key={patient.id} className={`p-6 rounded-[2.5rem] border-2 transition-all ${inRoom ? 'border-emerald-500 bg-emerald-50/10' : 'border-slate-50 bg-white'}`}>
                                                     <div className="flex justify-between items-start mb-4">
@@ -184,7 +205,7 @@ export default function ClientQueue() {
                                                         </span>
                                                         <span className="text-[10px] font-bold text-slate-300 uppercase">{patient.appointment_time}</span>
                                                     </div>
-                                                    <h4 className="font-black uppercase text-slate-900">{patient.profiles?.full_name}</h4>
+                                                    <h4 className="font-black uppercase text-slate-900">{patientName}</h4>
                                                     {inRoom && (
                                                         <button onClick={() => handleFinish(patient.id)} className="w-full mt-4 py-3 bg-slate-900 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all">
                                                             {actioningId === patient.id ? "..." : "Complete Session"}
