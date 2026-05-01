@@ -17,10 +17,40 @@ export default function StaffAppointments() {
     const today = new Date();
 
     // --- STATES ---
+    const [currentYear, setCurrentYear] = useState(today.getFullYear());
+    const [currentMonth, setCurrentMonth] = useState(today.getMonth()); // 0-indexed
     const [selectedDate, setSelectedDate] = useState(today.getDate());
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [staffName, setStaffName] = useState("");
+
+    // --- CALENDAR HELPERS ---
+    const MONTH_NAMES = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay(); // 0=Sun
+
+    const goToPrevMonth = () => {
+        if (currentMonth === 0) {
+            setCurrentMonth(11);
+            setCurrentYear(y => y - 1);
+        } else {
+            setCurrentMonth(m => m - 1);
+        }
+        setSelectedDate(1);
+    };
+
+    const goToNextMonth = () => {
+        if (currentMonth === 11) {
+            setCurrentMonth(0);
+            setCurrentYear(y => y + 1);
+        } else {
+            setCurrentMonth(m => m + 1);
+        }
+        setSelectedDate(1);
+    };
 
     useEffect(() => {
         const controller = new AbortController();
@@ -32,7 +62,7 @@ export default function StaffAppointments() {
 
         init();
         return () => controller.abort();
-    }, [selectedDate]); // Re-fetch when user clicks a different day
+    }, [selectedDate, currentMonth, currentYear]); // Re-fetch when user clicks a different day or navigates months
 
     // 1. Fetch Staff Identity
     async function fetchStaffInfo(signal) {
@@ -48,44 +78,26 @@ export default function StaffAppointments() {
         }
     }
 
-    // 2. Fetch Helper for Names
-    async function getProfilesForAppointments(apts, signal) {
-        if (!apts || apts.length === 0) return [];
-        const userIds = [...new Set(apts.map(a => a.user_id).filter(id => !!id))];
-        const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, full_name')
-            .in('id', userIds)
-            .abortSignal(signal);
-        return profiles || [];
-    }
 
-    // 3. Fetch Real Appointments for Selected Day
+    // 2. Fetch Real Appointments for Selected Day
     async function fetchRealAppointments(signal) {
         try {
             setLoading(true);
 
             // Construct the date string for filtering (YYYY-MM-DD)
-            // Note: Update '2026-03' if you want a dynamic month/year picker later
-            const dayString = `2026-03-${String(selectedDate).padStart(2, '0')}`;
+            const month = String(currentMonth + 1).padStart(2, '0');
+            const dayString = `${currentYear}-${month}-${String(selectedDate).padStart(2, '0')}`;
 
             const { data: apts, error } = await supabase
                 .from('appointments')
-                .select('*')
+                .select('*, profiles:user_id (id, first_name, last_name)')
                 .eq('appointment_date', dayString)
-                .order('created_at', { ascending: true }) // You can add a 'time' column later
+                .order('appointment_time', { ascending: true })
                 .abortSignal(signal);
 
             if (error) throw error;
 
-            const profiles = await getProfilesForAppointments(apts, signal);
-
-            const merged = (apts || []).map(apt => ({
-                ...apt,
-                profiles: profiles.find(p => String(p.id) === String(apt.user_id)) || { full_name: "Patient" }
-            }));
-
-            setAppointments(merged);
+            setAppointments(apts || []);
         } catch (err) {
             if (err.name !== 'AbortError') console.error("Fetch Error:", err);
         } finally {
@@ -115,7 +127,7 @@ export default function StaffAppointments() {
                 <aside className="staff-sidebar">
                     <div className="staff-sidebar-top">
                         <div className="staff-brand">
-                            <div className="staff-brand-icon">M</div>
+                            <div className="staff-brand-icon"><img src="/mjylogo.png" alt="CareSync Logo" className="w-10 h-10 object-contain" /></div>
                             <div className="staff-brand-text">
                                 <span className="staff-brand-name">CareSync</span>
                                 <span className="staff-brand-sub">Staff Terminal</span>
@@ -154,12 +166,12 @@ export default function StaffAppointments() {
                     {/* HEADER */}
                     <div className="staff-header">
                         <div className="staff-header-info">
-                            <h1 className="staff-page-title">Schedules</h1>
-                            <p className="staff-page-subtitle">Manage daily clinical bookings</p>
+                            <h1 className="staff-page-title">Appointments</h1>
+                            <p className="staff-page-subtitle">Review Your Clinical Bookings</p>
                         </div>
                         <div className="flex gap-3">
-                            <button className="staff-btn-filter"><Filter size={16} /> Filter</button>
-                            <button className="staff-btn-primary"><Plus size={16} /> New Appt</button>
+
+                            <button className="staff-btn-primary"><Plus size={0} /> New Appt</button>
                         </div>
                     </div>
 
@@ -168,17 +180,21 @@ export default function StaffAppointments() {
                         <div className="col-span-4 space-y-6">
                             <div className="appt-calendar-card">
                                 <div className="flex justify-between items-center">
-                                    <h3 className="appt-calendar-title">March 2026</h3>
+                                    <h3 className="appt-calendar-title">{MONTH_NAMES[currentMonth]} {currentYear}</h3>
                                     <div className="flex gap-2">
-                                        <button className="appt-calendar-nav-btn"><ChevronLeft size={18} /></button>
-                                        <button className="appt-calendar-nav-btn"><ChevronRight size={18} /></button>
+                                        <button className="appt-calendar-nav-btn" onClick={goToPrevMonth}><ChevronLeft size={18} /></button>
+                                        <button className="appt-calendar-nav-btn" onClick={goToNextMonth}><ChevronRight size={18} /></button>
                                     </div>
                                 </div>
                                 <div className="appt-calendar-day-labels">
                                     {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => <div key={day}>{day}</div>)}
                                 </div>
                                 <div className="appt-calendar-grid">
-                                    {[...Array(31)].map((_, i) => (
+                                    {/* Empty cells for days before the 1st */}
+                                    {[...Array(firstDayOfMonth)].map((_, i) => (
+                                        <div key={`empty-${i}`} />
+                                    ))}
+                                    {[...Array(daysInCurrentMonth)].map((_, i) => (
                                         <button
                                             key={i}
                                             onClick={() => setSelectedDate(i + 1)}
@@ -201,7 +217,7 @@ export default function StaffAppointments() {
                         {/* RIGHT: DETAILED AGENDA */}
                         <div className="col-span-8 space-y-6">
                             <div className="flex justify-between items-center px-4">
-                                <h3 className="staff-section-label">March {selectedDate}, 2026</h3>
+                                <h3 className="staff-section-label">{MONTH_NAMES[currentMonth]} {selectedDate}, {currentYear}</h3>
                                 <div className="appt-timezone">
                                     <Clock size={12} className="text-emerald-500" /> Time Zone: PST
                                 </div>
@@ -218,20 +234,23 @@ export default function StaffAppointments() {
                                         <div key={appt.id} className="appt-agenda-card group">
                                             <div className="flex items-center gap-8">
                                                 <div className="text-center w-20">
-                                                    {/* Using created_at as a fallback for time if no time column exists */}
                                                     <p className="appt-time-value">
-                                                        {new Date(appt.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).split(' ')[0]}
+                                                        {appt.appointment_time?.split(' ')[0] ?? '--:--'}
                                                     </p>
                                                     <p className="appt-time-period">
-                                                        {new Date(appt.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).split(' ')[1]}
+                                                        {appt.appointment_time?.split(' ')[1] ?? ''}
                                                     </p>
                                                 </div>
                                                 <div className="appt-divider" />
                                                 <div className="space-y-1">
                                                     <div className="flex items-center gap-3">
-                                                        <h4 className="appt-patient-name">{appt.profiles?.full_name}</h4>
+                                                        <h4 className="appt-patient-name">
+                                                            {appt.profiles
+                                                                ? `${appt.profiles.first_name || ''} ${appt.profiles.last_name || ''}`.trim() || 'Unknown'
+                                                                : 'Unknown'}
+                                                        </h4>
                                                         <span className={`text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-widest ${appt.status === 'CONFIRMED' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' :
-                                                                appt.status === 'PENDING' ? 'bg-orange-400 text-white shadow-lg shadow-orange-500/20' : 'bg-slate-100 text-slate-500'
+                                                            appt.status === 'PENDING' ? 'bg-orange-400 text-white shadow-lg shadow-orange-500/20' : 'bg-slate-100 text-slate-500'
                                                             }`}>
                                                             {appt.status}
                                                         </span>
@@ -241,7 +260,7 @@ export default function StaffAppointments() {
                                             </div>
 
                                             <div className="flex items-center gap-4">
-                                                <button className="appt-checkin-btn">Check-in</button>
+                                                <button className="appt-checkin-btn" onClick={() => navigate('/staff/check-in')}>Check-in</button>
                                                 <button className="staff-btn-icon"><MoreHorizontal size={18} /></button>
                                             </div>
                                         </div>

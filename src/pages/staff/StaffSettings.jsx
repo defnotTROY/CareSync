@@ -34,7 +34,7 @@ export default function StaffSettings() {
                 <aside className="staff-sidebar">
                     <div className="staff-sidebar-top">
                         <div className="staff-brand">
-                            <div className="staff-brand-icon">M</div>
+                            <div className="staff-brand-icon"><img src="/mjylogo.png" alt="CareSync Logo" className="w-10 h-10 object-contain" /></div>
                             <div className="staff-brand-text">
                                 <span className="staff-brand-name">CareSync</span>
                                 <span className="staff-brand-sub">Staff Terminal</span>

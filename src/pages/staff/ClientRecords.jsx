@@ -37,10 +37,10 @@ export default function ClientRecords() {
                 if (user) {
                     const { data: profile } = await supabase
                         .from('profiles')
-                        .select('full_name')
+                        .select('first_name, last_name')
                         .eq('id', user.id)
                         .single();
-                    setStaffName(profile?.full_name || "Staff Member");
+                    setStaffName(profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || "Staff Member" : "Staff Member");
                 }
                 setStaffLoading(false);
 
@@ -73,41 +73,31 @@ export default function ClientRecords() {
                 // 3. Process the data
                 const processedClients = profiles.map(profile => {
                     const userApts = (appointments || []).filter(a => a.user_id === profile.id);
-                    
-                    let lastVisit = "No visits";
-                    let isActive = false;
+
+                    let dateVisited = "No visits";
+                    let visitOutcome = "No visits";
 
                     if (userApts.length > 0) {
-                        // Sort appointments by date descending
+                        // Sort appointments by date descending to get the most recent
                         userApts.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
                         const mostRecentApt = userApts[0];
-                        
-                        lastVisit = new Date(mostRecentApt.appointment_date).toLocaleDateString(undefined, {
+
+                        dateVisited = new Date(mostRecentApt.appointment_date).toLocaleDateString(undefined, {
                             month: 'short', day: 'numeric', year: 'numeric'
                         });
 
-                        // Active if they have a CONFIRMED, CHECKED_IN, or recent COMPLETED appointment
-                        const hasActiveStatus = userApts.some(a => ['CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS'].includes(a.status));
-                        if (hasActiveStatus) {
-                            isActive = true;
-                        } else {
-                            // Or if they visited in the last 6 months
-                            const sixMonthsAgo = new Date();
-                            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-                            if (new Date(mostRecentApt.appointment_date) > sixMonthsAgo) {
-                                isActive = true;
-                            }
-                        }
+                        visitOutcome = mostRecentApt.status || 'Unknown';
                     }
 
                     return {
                         id: profile.id,
                         displayId: `PAT-${profile.id.slice(0, 6).toUpperCase()}`,
-                        name: profile.full_name || 'Unknown Patient',
+                        name: profile.first_name || profile.last_name
+                            ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
+                            : 'Unknown Patient',
                         email: profile.email,
-                        type: 'Standard', // Placeholder since we don't have patient types
-                        lastVisit,
-                        status: isActive ? 'Active' : 'Inactive'
+                        dateVisited,
+                        visitOutcome
                     };
                 });
 
@@ -126,10 +116,10 @@ export default function ClientRecords() {
     const filteredClients = useMemo(() => {
         if (!searchQuery.trim()) return clients;
         const query = searchQuery.toLowerCase();
-        return clients.filter(c => 
-            c.name.toLowerCase().includes(query) ||
-            c.email.toLowerCase().includes(query) ||
-            c.displayId.toLowerCase().includes(query)
+        return clients.filter(c =>
+            c.name?.toLowerCase().includes(query) ||
+            c.email?.toLowerCase().includes(query) ||
+            c.displayId?.toLowerCase().includes(query)
         );
     }, [clients, searchQuery]);
 
@@ -172,7 +162,7 @@ export default function ClientRecords() {
                 <aside className="staff-sidebar">
                     <div className="staff-sidebar-top">
                         <div className="staff-brand">
-                            <div className="staff-brand-icon">M</div>
+                            <div className="staff-brand-icon"><img src="/mjylogo.png" alt="CareSync Logo" className="w-10 h-10 object-contain" /></div>
                             <div className="staff-brand-text">
                                 <span className="staff-brand-name">CareSync</span>
                                 <span className="staff-brand-sub">Staff Terminal</span>
@@ -265,48 +255,66 @@ export default function ClientRecords() {
                                         <tr className="staff-table-head-row">
                                             <th className="staff-th">Patient ID</th>
                                             <th className="staff-th">Full Name</th>
-                                            <th className="staff-th">Patient Type</th>
-                                            <th className="staff-th">Last Visit</th>
-                                            <th className="staff-th">Status</th>
+                                            <th className="staff-th">Date Visited</th>
+                                            <th className="staff-th">Visit Outcome</th>
                                             <th className="staff-th text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="staff-table-body">
-                                        {currentRecords.map((patient) => (
-                                            <tr key={patient.displayId} className="staff-table-row">
-                                                <td className="staff-td">
-                                                    <span className="records-patient-id">{patient.displayId}</span>
-                                                </td>
-                                                <td className="staff-td">
-                                                    <p className="records-patient-name">{patient.name}</p>
-                                                    <p className="records-patient-email">{patient.email}</p>
-                                                </td>
-                                                <td className="staff-td">
-                                                    <span className={`staff-status-badge ${patient.type === 'Student' ? 'text-blue-500' : 'text-purple-500'}`}>
-                                                        {patient.type}
-                                                    </span>
-                                                </td>
-                                                <td className="staff-td font-bold text-sm text-slate-600 italic">
-                                                    {patient.lastVisit}
-                                                </td>
-                                                <td className="staff-td">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className={`records-status-dot ${patient.status === 'Active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
-                                                        <span className="staff-status-badge text-slate-900">{patient.status}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="staff-td text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <button onClick={handleActionClick} className="records-action-edit" title="Edit Patient">
-                                                            <FileEdit size={16} />
-                                                        </button>
-                                                        <button onClick={handleActionClick} className="records-action-delete" title="Delete Patient">
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {currentRecords.map((patient) => {
+                                            const outcomeStyles = {
+                                                COMPLETED:       'bg-emerald-100 text-emerald-700',
+                                                CANCELLED:       'bg-red-100 text-red-600',
+                                                PENDING:         'bg-orange-100 text-orange-600',
+                                                CONFIRMED:       'bg-blue-100 text-blue-600',
+                                                ON_CASHIER:      'bg-purple-100 text-purple-600',
+                                                ON_DOCTOR:       'bg-indigo-100 text-indigo-600',
+                                                IN_PROGRESS:     'bg-yellow-100 text-yellow-700',
+                                            };
+                                            const outcomeLabel = {
+                                                COMPLETED:   'Completed',
+                                                CANCELLED:   'Cancelled',
+                                                PENDING:     'Pending',
+                                                CONFIRMED:   'Confirmed',
+                                                ON_CASHIER:  'At Cashier',
+                                                ON_DOCTOR:   'With Doctor',
+                                                IN_PROGRESS: 'In Progress',
+                                            };
+                                            const badgeClass = outcomeStyles[patient.visitOutcome] || 'bg-slate-100 text-slate-500';
+                                            const label = outcomeLabel[patient.visitOutcome] || patient.visitOutcome;
+
+                                            return (
+                                                <tr key={patient.displayId} className="staff-table-row">
+                                                    <td className="staff-td">
+                                                        <span className="records-patient-id">{patient.displayId}</span>
+                                                    </td>
+                                                    <td className="staff-td">
+                                                        <p className="records-patient-name">{patient.name}</p>
+                                                        <p className="records-patient-email">{patient.email}</p>
+                                                    </td>
+                                                    <td className="staff-td">
+                                                        <span className="text-slate-500 italic text-sm font-medium">
+                                                            {patient.dateVisited}
+                                                        </span>
+                                                    </td>
+                                                    <td className="staff-td">
+                                                        <span className={`inline-block text-xs font-bold px-3 py-1.5 rounded-lg uppercase tracking-wide ${badgeClass}`}>
+                                                            {label}
+                                                        </span>
+                                                    </td>
+                                                    <td className="staff-td text-right">
+                                                        <div className="flex justify-end gap-2">
+                                                            <button onClick={handleActionClick} className="records-action-edit" title="Edit Patient">
+                                                                <FileEdit size={16} />
+                                                            </button>
+                                                            <button onClick={handleActionClick} className="records-action-delete" title="Delete Patient">
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                                 

@@ -98,7 +98,7 @@ export default function ClientQueue() {
                 <aside className="staff-sidebar">
                     <div className="staff-sidebar-top">
                         <div className="staff-brand">
-                            <div className="staff-brand-icon">M</div>
+                            <div className="staff-brand-icon"><img src="/mjylogo.png" alt="CareSync Logo" className="w-10 h-10 object-contain" /></div>
                             <div className="staff-brand-text font-black uppercase tracking-tighter">
                                 <span className="staff-brand-name">CareSync</span>
                                 <span className="staff-brand-sub text-[8px] tracking-widest text-slate-500">Staff Terminal</span>
@@ -132,7 +132,7 @@ export default function ClientQueue() {
                 <main className="staff-main p-12 space-y-10 overflow-y-auto bg-[#F8FAFC]">
                     <div className="flex justify-between items-center">
                         <div>
-                            <h1 className="staff-page-title">Live Queue</h1>
+                            <h1 className="staff-page-title">Client Queue</h1>
                             <p className="staff-page-subtitle">Live Center Management</p>
                         </div>
                         <button onClick={refresh} className="px-6 py-3 bg-white border-2 border-slate-50 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:border-black shadow-sm transition-all">

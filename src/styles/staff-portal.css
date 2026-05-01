@@ -26,7 +26,7 @@
 }
 
 .staff-brand-icon {
-    @apply w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center font-bold text-white text-xl shadow-lg shadow-emerald-500/20;
+    @apply w-10 h-10 flex items-center justify-center;
 }
 
 .staff-brand-text {
