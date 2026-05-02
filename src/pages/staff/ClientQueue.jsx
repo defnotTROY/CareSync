@@ -8,6 +8,8 @@ import {
 import { supabase } from '../../supabaseClient';
 import { useLiveQueue } from '../../hooks/useLiveQueue.js';
 import PageTransition from "../../components/layout/PageTransition.jsx";
+import StaffSidebar from "../../components/layout/StaffSidebar.jsx";
+import StaffHeader from "../../components/layout/StaffHeader.jsx";
 import '../../styles/staff-portal.css';
 import './ClientQueue.css';
 
@@ -18,6 +20,7 @@ export default function ClientQueue() {
     const [staffName, setStaffName] = useState("Staff");
     const [staffLoading, setStaffLoading] = useState(true);
     const [actioningId, setActioningId] = useState(null);
+    const [isSidebarOpen, setSidebarOpen] = useState(false);
 
     const { waitingQueue, servingNow, loading, refresh } = useLiveQueue();
 
@@ -94,42 +97,19 @@ export default function ClientQueue() {
 
     return (
         <PageTransition>
-            <div className="staff-layout">
-                <aside className="staff-sidebar">
-                    <div className="staff-sidebar-top">
-                        <div className="staff-brand">
-                            <div className="staff-brand-icon"><img src="/mjylogo.png" alt="CareSync Logo" className="w-10 h-10 object-contain" /></div>
-                            <div className="staff-brand-text font-black uppercase tracking-tighter">
-                                <span className="staff-brand-name">CareSync</span>
-                                <span className="staff-brand-sub text-[8px] tracking-widest text-slate-500">Staff Terminal</span>
-                            </div>
-                        </div>
-                        <nav className="staff-nav">
-                            {navItems.map((item) => {
-                                const isActive = location.pathname === item.path;
-                                return (
-                                    <Link key={item.name} to={item.path} className={`staff-nav-link ${isActive ? 'staff-nav-link--active' : ''}`}>
-                                        <item.icon size={20} className={isActive ? 'staff-nav-icon--active' : 'staff-nav-icon'} />
-                                        <span className="staff-nav-label">{item.name}</span>
-                                    </Link>
-                                );
-                            })}
-                        </nav>
-                    </div>
-                    <div className="staff-sidebar-bottom">
-                        <div className="staff-user-section px-4 py-3 flex items-center justify-between border-t border-white/10">
-                            <div className="flex items-center gap-3">
-                                <div className="staff-user-avatar w-8 h-8 bg-slate-800 rounded-full flex items-center justify-center text-[10px] font-bold text-white">
-                                    {staffName?.charAt(0)}
-                                </div>
-                                <span className="staff-user-name text-[11px] font-bold text-white uppercase truncate w-20">{staffName}</span>
-                            </div>
-                            <button onClick={handleLogout} className="text-slate-500 hover:text-red-400"><LogOut size={16} /></button>
-                        </div>
-                    </div>
-                </aside>
+            <div className="flex min-h-screen bg-[#F8FAFC]">
+                <StaffSidebar
+                    isOpen={isSidebarOpen}
+                    onClose={() => setSidebarOpen(false)}
+                />
 
-                <main className="staff-main p-12 space-y-10 overflow-y-auto bg-[#F8FAFC]">
+                <div className="flex-1 flex flex-col min-w-0 md:ml-20 lg:ml-72">
+                    <StaffHeader
+                        title="Client Queue"
+                        onMenuClick={() => setSidebarOpen(true)}
+                    />
+
+                <main className="staff-main p-6 lg:p-12 space-y-10 overflow-y-auto bg-[#F8FAFC]">
                     <div className="flex justify-between items-center">
                         <div>
                             <h1 className="staff-page-title">Client Queue</h1>
@@ -222,6 +202,7 @@ export default function ClientQueue() {
                         </div>
                     )}
                 </main>
+                </div>
             </div>
         </PageTransition>
     );

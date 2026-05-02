@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import PageTransition from "../../components/layout/PageTransition.jsx";
+import StaffSidebar from "../../components/layout/StaffSidebar.jsx";
+import StaffHeader from "../../components/layout/StaffHeader.jsx";
 import '../../styles/staff-portal.css';
 import './StaffAppointments.css';
 
@@ -23,6 +25,7 @@ export default function StaffAppointments() {
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [staffName, setStaffName] = useState("");
+    const [isSidebarOpen, setSidebarOpen] = useState(false);
 
     // --- CALENDAR HELPERS ---
     const MONTH_NAMES = [
@@ -122,45 +125,17 @@ export default function StaffAppointments() {
 
     return (
         <PageTransition>
-            <div className="staff-layout">
-                {/* SIDEBAR */}
-                <aside className="staff-sidebar">
-                    <div className="staff-sidebar-top">
-                        <div className="staff-brand">
-                            <div className="staff-brand-icon"><img src="/mjylogo.png" alt="CareSync Logo" className="w-10 h-10 object-contain" /></div>
-                            <div className="staff-brand-text">
-                                <span className="staff-brand-name">CareSync</span>
-                                <span className="staff-brand-sub">Staff Terminal</span>
-                            </div>
-                        </div>
+            <div className="flex min-h-screen bg-[#F8FAFC]">
+                <StaffSidebar
+                    isOpen={isSidebarOpen}
+                    onClose={() => setSidebarOpen(false)}
+                />
 
-                        <nav className="staff-nav">
-                            {navItems.map((item) => (
-                                <Link
-                                    key={item.name}
-                                    to={item.path}
-                                    className={`staff-nav-link ${location.pathname === item.path ? 'staff-nav-link--active' : ''}`}
-                                >
-                                    <item.icon size={20} className={location.pathname === item.path ? 'staff-nav-icon--active' : 'staff-nav-icon'} />
-                                    <span className="staff-nav-label">{item.name}</span>
-                                </Link>
-                            ))}
-                        </nav>
-                    </div>
-
-                    <div className="staff-sidebar-bottom">
-                        <div className="staff-user-section">
-                            <div className="staff-user-info">
-                                <div className="staff-user-avatar">{staffName ? staffName.charAt(0) : 'S'}</div>
-                                <div className="flex flex-col">
-                                    <span className="staff-user-name truncate w-24">{staffName || "Loading..."}</span>
-                                    <span className="staff-user-role">Admin</span>
-                                </div>
-                            </div>
-                            <button onClick={handleLogout} className="staff-logout-btn"><LogOut size={18} /></button>
-                        </div>
-                    </div>
-                </aside>
+                <div className="flex-1 flex flex-col min-w-0 md:ml-20 lg:ml-72">
+                    <StaffHeader
+                        title="Appointments"
+                        onMenuClick={() => setSidebarOpen(true)}
+                    />
 
                 <main className="staff-main">
                     {/* HEADER */}
@@ -275,6 +250,7 @@ export default function StaffAppointments() {
                         </div>
                     </div>
                 </main>
+                </div>
             </div>
         </PageTransition>
     );

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, UserCheck, Users, CalendarDays,
@@ -5,12 +6,15 @@ import {
     User, Shield, BellRing, Monitor, UserPlus
 } from 'lucide-react';
 import PageTransition from "../../components/layout/PageTransition.jsx";
+import StaffSidebar from "../../components/layout/StaffSidebar.jsx";
+import StaffHeader from "../../components/layout/StaffHeader.jsx";
 import '../../styles/staff-portal.css';
 import './StaffSettings.css';
 
 export default function StaffSettings() {
     const location = useLocation();
     const navigate = useNavigate();
+    const [isSidebarOpen, setSidebarOpen] = useState(false);
 
     const handleLogout = () => {
         navigate('/login');
@@ -28,52 +32,17 @@ export default function StaffSettings() {
 
     return (
         <PageTransition>
-            <div className="staff-layout">
+            <div className="flex min-h-screen bg-[#F8FAFC]">
+                <StaffSidebar
+                    isOpen={isSidebarOpen}
+                    onClose={() => setSidebarOpen(false)}
+                />
 
-                {/* SIDEBAR */}
-                <aside className="staff-sidebar">
-                    <div className="staff-sidebar-top">
-                        <div className="staff-brand">
-                            <div className="staff-brand-icon"><img src="/mjylogo.png" alt="CareSync Logo" className="w-10 h-10 object-contain" /></div>
-                            <div className="staff-brand-text">
-                                <span className="staff-brand-name">CareSync</span>
-                                <span className="staff-brand-sub">Staff Terminal</span>
-                            </div>
-                        </div>
-
-                        <nav className="staff-nav">
-                            {navItems.map((item) => {
-                                const isActive = location.pathname === item.path;
-                                return (
-                                    <Link key={item.name} to={item.path} className={`staff-nav-link ${isActive ? 'staff-nav-link--active' : ''}`}>
-                                        <item.icon size={20} className={isActive ? 'staff-nav-icon--active' : 'staff-nav-icon'} />
-                                        <span className="staff-nav-label">{item.name}</span>
-                                    </Link>
-                                );
-                            })}
-                        </nav>
-                    </div>
-
-                    <div className="staff-sidebar-bottom">
-                        <Link to="/staff/settings" className={`staff-settings-link ${location.pathname === '/staff/settings' ? 'staff-settings-link--active' : ''}`}>
-                            <Settings size={20} className={location.pathname === '/staff/settings' ? 'staff-nav-icon--active' : 'staff-nav-icon'} />
-                            <span className="staff-nav-label">Settings</span>
-                        </Link>
-
-                        <div className="staff-user-section">
-                            <div className="staff-user-info">
-                                <div className="staff-user-avatar">JD</div>
-                                <div className="flex flex-col">
-                                    <span className="staff-user-name">Juan D.</span>
-                                    <span className="staff-user-role">Admin</span>
-                                </div>
-                            </div>
-                            <button onClick={handleLogout} className="staff-logout-btn">
-                                <LogOut size={18} />
-                            </button>
-                        </div>
-                    </div>
-                </aside>
+                <div className="flex-1 flex flex-col min-w-0 md:ml-20 lg:ml-72">
+                    <StaffHeader
+                        title="Settings"
+                        onMenuClick={() => setSidebarOpen(true)}
+                    />
 
                 <main className="staff-main">
                     <header className="staff-header-info">
@@ -133,6 +102,7 @@ export default function StaffSettings() {
                         </div>
                     </div>
                 </main>
+                </div>
             </div>
         </PageTransition>
     );

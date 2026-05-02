@@ -9,6 +9,8 @@ import {
 import { Html5Qrcode } from 'html5-qrcode';
 import { supabase } from '../../lib/supabase.js';
 import PageTransition from "../../components/layout/PageTransition.jsx";
+import StaffSidebar from "../../components/layout/StaffSidebar.jsx";
+import StaffHeader from "../../components/layout/StaffHeader.jsx";
 import '../../styles/staff-portal.css';
 import './ClientCheckIn.css';
 
@@ -49,6 +51,7 @@ export default function ClientCheckIn() {
     const [scanMessage, setScanMessage] = useState('');
     const [scanMessageDetail, setScanMessageDetail] = useState('');
     const [scanLoading, setScanLoading] = useState(false);
+    const [isSidebarOpen, setSidebarOpen] = useState(false);
 
     const allProceduresDone = Object.values(procedures).every(Boolean);
 
@@ -273,33 +276,17 @@ export default function ClientCheckIn() {
 
     return (
         <PageTransition>
-            <div className="staff-layout">
-                <aside className="staff-sidebar">
-                    <div className="staff-sidebar-top">
-                        <div className="staff-brand">
-                            <div className="staff-brand-icon"><img src="/mjylogo.png" alt="CareSync Logo" className="w-10 h-10 object-contain" /></div>
-                            <div className="staff-brand-text">
-                                <span className="staff-brand-name">CareSync</span>
-                                <span className="staff-brand-sub">Staff Terminal</span>
-                            </div>
-                        </div>
-                        <nav className="staff-nav">
-                            {navItems.map((item) => (
-                                <Link key={item.name} to={item.path} className={`staff-nav-link ${location.pathname === item.path ? 'staff-nav-link--active' : ''}`}>
-                                    <item.icon size={20} className={location.pathname === item.path ? 'staff-nav-icon--active' : 'staff-nav-icon'} />
-                                    <span className="staff-nav-label">{item.name}</span>
-                                </Link>
-                            ))}
-                        </nav>
-                    </div>
-                    <div className="staff-sidebar-bottom">
-                        <div className="staff-user-section">
-                            <div className="staff-user-avatar">{staffName?.charAt(0)}</div>
-                            <span className="staff-user-name truncate w-24">{staffName}</span>
-                            <button onClick={() => supabase.auth.signOut()} className="staff-logout-btn"><LogOut size={18} /></button>
-                        </div>
-                    </div>
-                </aside>
+            <div className="flex min-h-screen bg-[#F8FAFC]">
+                <StaffSidebar
+                    isOpen={isSidebarOpen}
+                    onClose={() => setSidebarOpen(false)}
+                />
+
+                <div className="flex-1 flex flex-col min-w-0 md:ml-20 lg:ml-72">
+                    <StaffHeader
+                        title="Client Check-in"
+                        onMenuClick={() => setSidebarOpen(true)}
+                    />
 
                 <main className="staff-main-sm">
                     <div className="staff-header">
@@ -411,6 +398,7 @@ export default function ClientCheckIn() {
                         </div>
                     </div>
                 </main>
+                </div>
             </div>
         </PageTransition>
     );

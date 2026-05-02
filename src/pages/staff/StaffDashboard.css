@@ -6,12 +6,12 @@
 
 /* ---- Stat Grid ---- */
 .dashboard-stat-grid {
-    @apply grid grid-cols-4 gap-6;
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6;
 }
 
 /* ---- Live Flow ---- */
 .dashboard-flow-card {
-    @apply col-span-8 bg-white border-2 border-slate-50 rounded-[2.5rem] p-10 space-y-8 shadow-sm;
+    @apply col-span-8 bg-white border-2 border-slate-50 rounded-2xl lg:rounded-[2.5rem] p-5 lg:p-10 space-y-6 lg:space-y-8 shadow-sm;
 }
 
 .dashboard-flow-item {
@@ -36,7 +36,7 @@
 
 /* ---- System Notice ---- */
 .dashboard-notice {
-    @apply bg-black rounded-[2.5rem] p-10 text-white space-y-6 shadow-xl relative overflow-hidden;
+    @apply bg-black rounded-2xl lg:rounded-[2.5rem] p-6 lg:p-10 text-white space-y-6 shadow-xl relative overflow-hidden;
 }
 
 .dashboard-notice-glow {
@@ -74,7 +74,8 @@
 
 /* ---- Notification Dropdown Container ---- */
 .notification-dropdown {
-    @apply absolute right-0 mt-3 w-80 bg-white border border-slate-200 shadow-2xl rounded-[2rem] z-50 overflow-hidden;
+    @apply fixed inset-x-4 top-auto bottom-auto mt-3 bg-white border border-slate-200 shadow-2xl rounded-2xl z-50 overflow-hidden;
+    @apply md:absolute md:inset-auto md:right-0 md:w-80 md:rounded-[2rem];
     /* Manual animation for Tailwind v4 compatibility */
     animation: dropdown-pop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -143,7 +144,7 @@
 
 /* ---- Custom Scrollbar for Notifications ---- */
 .notification-scroll {
-    @apply max-h-[400px] overflow-y-auto;
+    @apply max-h-[300px] md:max-h-[400px] overflow-y-auto;
 }
 
 .notification-scroll::-webkit-scrollbar {
